@@ -587,8 +587,22 @@ export default function App() {
         {/* Universal Premium Header */}
         <header className="w-full max-w-6xl flex justify-between items-center mb-6 md:mb-10">
           <div className="flex items-center gap-2.5 md:gap-3.5">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 pulse-glow-effect">
-              <Trophy className="text-slate-950" size={20} />
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-950/60 border border-primary/20 rounded-xl flex items-center justify-center shadow-lg shadow-primary/10 pulse-glow-effect">
+              <svg viewBox="0 0 100 100" className="w-6 h-6 md:w-7 md:h-7 shrink-0">
+                <defs>
+                  <linearGradient id="gold-header-logo" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#FFE58F" />
+                    <stop offset="25%" stopColor="#FADB14" />
+                    <stop offset="60%" stopColor="#D4B106" />
+                    <stop offset="100%" stopColor="#874D00" />
+                  </linearGradient>
+                </defs>
+                <g fill="url(#gold-header-logo)">
+                  <rect x="25" y="20" width="50" height="12" rx="2.5" />
+                  <rect x="25" y="42" width="50" height="12" rx="2.5" />
+                  <path d="M 35,54 L 35,66 C 35,76 48,80 75,80 L 75,68 C 52,68 47,62 47,54 Z" />
+                </g>
+              </svg>
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl theme-gradient-text uppercase">Emagyne</h1>

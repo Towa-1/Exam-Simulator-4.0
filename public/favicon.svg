@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <!-- Premium metallic gold gradient -->
+    <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE58F" />
+      <stop offset="25%" stop-color="#FADB14" />
+      <stop offset="60%" stop-color="#D4B106" />
+      <stop offset="100%" stop-color="#874D00" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Stylized "E" Logo in gold -->
+  <g fill="url(#gold-gradient)">
+    <!-- Top Bar -->
+    <rect x="25" y="20" width="50" height="12" rx="2.5" />
+    
+    <!-- Middle Bar -->
+    <rect x="25" y="42" width="50" height="12" rx="2.5" />
+    
+    <!-- Bottom Curved Swoosh -->
+    <path d="M 35,54 L 35,66 C 35,76 48,80 75,80 L 75,68 C 52,68 47,62 47,54 Z" />
+  </g>
+</svg>
