@@ -97,4 +97,19 @@
   .pulse-glow-effect {
     animation: pulse-glow 3s infinite;
   }
+
+  @keyframes blink-red {
+    0%, 100% {
+      opacity: 1;
+      color: rgb(239, 68, 68);
+    }
+    50% {
+      opacity: 0.3;
+      color: rgb(239, 68, 68);
+    }
+  }
+
+  .animate-blink-red {
+    animation: blink-red 1s infinite;
+  }
 }

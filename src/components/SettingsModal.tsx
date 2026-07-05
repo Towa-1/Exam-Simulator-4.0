@@ -1,6 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Eye, EyeOff, ShieldCheck, Key, Volume2, Keyboard, Trash2, Cpu, ExternalLink, Sparkles } from 'lucide-react';
+import { X, Eye, EyeOff, ShieldCheck, Key, Volume2, Keyboard, Trash2, Cpu, ExternalLink, Sparkles, Palette } from 'lucide-react';
+import { cn } from '../lib/utils';
+
+export type ThemeType = 'gold' | 'emerald' | 'sapphire' | 'ruby';
+
+interface ThemeOption {
+  id: ThemeType;
+  name: string;
+  className: string;
+  colorClass: string;
+}
+
+const THEMES: ThemeOption[] = [
+  { id: 'gold', name: 'Amber Gold', className: '', colorClass: 'bg-yellow-500' },
+  { id: 'emerald', name: 'Emerald Cyber', className: 'theme-emerald', colorClass: 'bg-emerald-500' },
+  { id: 'sapphire', name: 'Sapphire Deep', className: 'theme-sapphire', colorClass: 'bg-blue-500' },
+  { id: 'ruby', name: 'Ruby Crimson', className: 'theme-ruby', colorClass: 'bg-red-500' },
+];
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -15,6 +32,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [showKey, setShowKey] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [shortcutsEnabled, setShortcutsEnabled] = useState(true);
+  const [activeTheme, setActiveTheme] = useState<ThemeType>('gold');
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
@@ -25,9 +43,25 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       setCustomModel(localStorage.getItem('emagyne_custom_model') || '');
       setSoundEnabled(localStorage.getItem('emagyne_sound_enabled') !== 'false');
       setShortcutsEnabled(localStorage.getItem('emagyne_shortcuts_enabled') !== 'false');
+      setActiveTheme((localStorage.getItem('emagyne_theme') as ThemeType) || 'gold');
       setIsSaved(false);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    // Remove all theme classes from document element
+    THEMES.forEach(t => {
+      if (t.className) {
+        document.documentElement.classList.remove(t.className);
+      }
+    });
+
+    // Add active theme class to document element
+    const themeObj = THEMES.find(t => t.id === activeTheme);
+    if (themeObj && themeObj.className) {
+      document.documentElement.classList.add(themeObj.className);
+    }
+  }, [activeTheme]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +71,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     localStorage.setItem('emagyne_custom_model', customModel.trim());
     localStorage.setItem('emagyne_sound_enabled', String(soundEnabled));
     localStorage.setItem('emagyne_shortcuts_enabled', String(shortcutsEnabled));
+    localStorage.setItem('emagyne_theme', activeTheme);
     setIsSaved(true);
     setTimeout(() => {
       setIsSaved(false);
@@ -245,6 +280,38 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               {/* Preferences */}
               <div className="space-y-4 pt-4 border-t border-slate-800">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Simulator Settings</h3>
+
+                {/* Active Theme Selector */}
+                <div className="flex items-center justify-between p-3 bg-slate-950/30 border border-slate-800/50 rounded-2xl">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-slate-800/50 rounded-lg text-primary mt-0.5">
+                      <Palette size={18} />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-slate-200">Active Theme</div>
+                      <div className="text-xs text-slate-500 font-medium">Choose color accent.</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {THEMES.map(theme => (
+                      <button
+                        key={theme.id}
+                        onClick={() => setActiveTheme(theme.id)}
+                        type="button"
+                        title={theme.name}
+                        className={cn(
+                          "w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-125 cursor-pointer relative",
+                          theme.colorClass,
+                          activeTheme === theme.id ? "ring-2 ring-white ring-offset-2 ring-offset-slate-950 scale-110" : "opacity-50 hover:opacity-100"
+                        )}
+                      >
+                        {activeTheme === theme.id && (
+                          <span className="absolute w-1.5 h-1.5 bg-white rounded-full" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 
                 {/* Keyboard Shortcuts */}
                 <label className="flex items-center justify-between p-3 bg-slate-950/30 border border-slate-800/50 rounded-2xl cursor-pointer hover:border-slate-700/50 transition-colors">

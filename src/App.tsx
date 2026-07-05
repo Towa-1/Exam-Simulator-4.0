@@ -10,7 +10,6 @@ import { KaTeXRenderer } from './components/KaTeXRenderer';
 import { parseQuestions } from './services/geminiService';
 import { Question, ExamState } from './types';
 import { Modal } from './components/Modal';
-import { ThemeSelector } from './components/ThemeSelector';
 import { SettingsModal } from './components/SettingsModal';
 import { playSound } from './lib/sound';
 import { cn } from './lib/utils';
@@ -34,6 +33,7 @@ import {
   Key,
   Calendar,
   ChevronRight,
+  ChevronLeft,
   HelpCircle,
   Sparkle,
   ExternalLink
@@ -105,6 +105,8 @@ interface NavigatorContentProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   setIsExitModalOpen: (open: boolean) => void;
+  isCollapsed?: boolean;
+  setIsCollapsed?: (collapsed: boolean) => void;
 }
 
 function NavigatorContent({ 
@@ -113,13 +115,92 @@ function NavigatorContent({
   setCurrentQuestionIndex, 
   searchQuery, 
   setSearchQuery, 
-  setIsExitModalOpen 
+  setIsExitModalOpen,
+  isCollapsed = false,
+  setIsCollapsed
 }: NavigatorContentProps) {
+  if (isCollapsed) {
+    return (
+      <div className="flex flex-col items-center w-full">
+        {/* Expand Toggle Button */}
+        <button
+          onClick={() => {
+            playSound('click');
+            setIsCollapsed?.(false);
+          }}
+          className="mb-6 p-2 bg-slate-950/60 border border-primary/10 rounded-xl text-slate-400 hover:text-primary hover:border-primary/30 transition-all cursor-pointer flex items-center justify-center"
+          title="Expand Navigator"
+        >
+          <ChevronRight size={18} />
+        </button>
+
+        {/* Minimized grid of question buttons */}
+        <div className="grid grid-cols-2 gap-1.5 mb-6 max-h-[350px] overflow-y-auto pr-0.5 custom-scrollbar w-full">
+          {state.questions.map((q, idx) => {
+            const isAnswered = state.userAnswers[q.id] !== undefined;
+            const isMarked = state.markedForReview.has(q.id);
+            const isCurrent = idx === currentQuestionIndex;
+            const isChecked = state.checkedAnswers.has(q.id);
+            const isCorrect = isChecked && state.userAnswers[q.id] === q.answer;
+            
+            return (
+              <button
+                key={q.id}
+                onClick={() => {
+                  setCurrentQuestionIndex(idx);
+                  playSound('click');
+                }}
+                className={cn(
+                  "w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black transition-all cursor-pointer relative mx-auto",
+                  isCurrent ? "ring-2 ring-primary scale-110 z-10" : "hover:scale-105",
+                  isChecked 
+                    ? (isCorrect ? "bg-green-500 text-white" : "bg-red-500 text-white")
+                    : (isAnswered ? "bg-primary text-slate-950" : "bg-slate-800/80 text-slate-400 border border-slate-700/30"),
+                  isMarked && !isChecked ? "after:content-[''] after:absolute after:top-0 after:right-0 after:w-1.5 after:h-1.5 after:bg-blue-400 after:rounded-full" : ""
+                )}
+                title={`Question ${idx + 1}`}
+              >
+                {idx + 1}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Exit Icon-only Button */}
+        <button
+          onClick={() => {
+            playSound('click');
+            setIsExitModalOpen(true);
+          }}
+          className="p-2.5 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-all cursor-pointer mt-4 flex items-center justify-center"
+          title="Exit Simulation"
+        >
+          <LogOut size={16} />
+        </button>
+      </div>
+    );
+  }
+
+  // Expanded layout
   return (
     <>
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-black uppercase tracking-wider text-xs text-primary/80">Question Navigator</h3>
-        <span className="text-xs text-slate-500 font-bold">{currentQuestionIndex + 1} of {state.questions.length}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-500 font-bold">{currentQuestionIndex + 1} of {state.questions.length}</span>
+          {setIsCollapsed && (
+            <button
+              onClick={() => {
+                playSound('click');
+                setIsCollapsed(true);
+              }}
+              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer flex items-center justify-center"
+              title="Collapse Navigator"
+            >
+              <ChevronLeft size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="relative mb-6">
@@ -257,6 +338,7 @@ export default function App() {
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
   const [rawInput, setRawInput] = useState('');
@@ -586,7 +668,14 @@ export default function App() {
       <div className="min-h-screen p-4 md:p-8 flex flex-col items-center">
         {/* Universal Premium Header */}
         <header className="w-full max-w-6xl flex justify-between items-center mb-6 md:mb-10">
-          <div className="flex items-center gap-2.5 md:gap-3.5">
+          <div 
+            className="flex items-center gap-2.5 md:gap-3.5 cursor-pointer hover:opacity-90 active:scale-98 transition-all"
+            onClick={() => {
+              playSound('click');
+              setIsSettingsOpen(true);
+            }}
+            title="Open Settings & Themes"
+          >
             <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-950/60 border border-primary/20 rounded-xl flex items-center justify-center shadow-lg shadow-primary/10 pulse-glow-effect">
               <svg viewBox="0 0 100 100" className="w-6 h-6 md:w-7 md:h-7 shrink-0">
                 <defs>
@@ -615,7 +704,11 @@ export default function App() {
               <div className="flex items-center gap-3 md:gap-4 glass-panel px-3 md:px-5 py-1.5 md:py-2.5 rounded-2xl mr-1 md:mr-2">
                 <div className={cn(
                   "flex items-center gap-1.5 font-mono text-sm md:text-lg font-black transition-colors",
-                  timePercentage < 10 ? "text-red-500 animate-pulse" : "text-primary"
+                  state.timeRemaining <= 60 
+                    ? "animate-blink-red text-red-500" 
+                    : timePercentage < 10 
+                      ? "text-red-500 animate-pulse" 
+                      : "text-primary"
                 )}>
                   <Clock size={16} />
                   {formatTime(state.timeRemaining)}
@@ -643,19 +736,6 @@ export default function App() {
                 </button>
               </div>
             )}
-
-            <ThemeSelector />
-            
-            <button
-              onClick={() => {
-                playSound('click');
-                setIsSettingsOpen(true);
-              }}
-              className="p-2 bg-slate-950/60 border border-primary/10 rounded-full hover:border-primary/40 hover:bg-slate-900 text-slate-400 hover:text-primary transition-all cursor-pointer shadow-sm"
-              title="Preferences & API Key"
-            >
-              <Settings size={18} />
-            </button>
           </div>
         </header>
 
@@ -960,7 +1040,10 @@ Explanation: 5 + 3 is equal to 8."
                 className="flex flex-col md:flex-row gap-6 md:gap-8 h-full items-start"
               >
                 {/* Navigator Sidebar (Desktop) */}
-                <aside className="hidden md:block w-72 glass-panel p-6 rounded-3xl h-fit sticky top-8">
+                <aside className={cn(
+                  "hidden md:block glass-panel p-4 md:p-6 rounded-3xl h-fit sticky top-8 transition-all duration-300 shrink-0",
+                  isSidebarCollapsed ? "w-20" : "w-72"
+                )}>
                   <NavigatorContent 
                     state={state} 
                     currentQuestionIndex={currentQuestionIndex} 
@@ -968,6 +1051,8 @@ Explanation: 5 + 3 is equal to 8."
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
                     setIsExitModalOpen={setIsExitModalOpen}
+                    isCollapsed={isSidebarCollapsed}
+                    setIsCollapsed={setIsSidebarCollapsed}
                   />
                 </aside>
 
