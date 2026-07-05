@@ -121,49 +121,26 @@ function NavigatorContent({
 }: NavigatorContentProps) {
   if (isCollapsed) {
     return (
-      <div className="flex flex-col items-center w-full">
+      <div className="flex flex-col items-center justify-between h-[340px] py-1 w-full select-none">
         {/* Expand Toggle Button */}
         <button
           onClick={() => {
             playSound('click');
             setIsCollapsed?.(false);
           }}
-          className="mb-6 p-2 bg-slate-950/60 border border-primary/10 rounded-xl text-slate-400 hover:text-primary hover:border-primary/30 transition-all cursor-pointer flex items-center justify-center"
+          className="p-2 bg-slate-950/60 border border-primary/10 rounded-xl text-slate-400 hover:text-primary hover:border-primary/30 transition-all cursor-pointer flex items-center justify-center shrink-0"
           title="Expand Navigator"
         >
           <ChevronRight size={18} />
         </button>
 
-        {/* Minimized grid of question buttons */}
-        <div className="grid grid-cols-2 gap-1.5 mb-6 max-h-[350px] overflow-y-auto pr-0.5 custom-scrollbar w-full">
-          {state.questions.map((q, idx) => {
-            const isAnswered = state.userAnswers[q.id] !== undefined;
-            const isMarked = state.markedForReview.has(q.id);
-            const isCurrent = idx === currentQuestionIndex;
-            const isChecked = state.checkedAnswers.has(q.id);
-            const isCorrect = isChecked && state.userAnswers[q.id] === q.answer;
-            
-            return (
-              <button
-                key={q.id}
-                onClick={() => {
-                  setCurrentQuestionIndex(idx);
-                  playSound('click');
-                }}
-                className={cn(
-                  "w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black transition-all cursor-pointer relative mx-auto",
-                  isCurrent ? "ring-2 ring-primary scale-110 z-10" : "hover:scale-105",
-                  isChecked 
-                    ? (isCorrect ? "bg-green-500 text-white" : "bg-red-500 text-white")
-                    : (isAnswered ? "bg-primary text-slate-950" : "bg-slate-800/80 text-slate-400 border border-slate-700/30"),
-                  isMarked && !isChecked ? "after:content-[''] after:absolute after:top-0 after:right-0 after:w-1.5 after:h-1.5 after:bg-blue-400 after:rounded-full" : ""
-                )}
-                title={`Question ${idx + 1}`}
-              >
-                {idx + 1}
-              </button>
-            );
-          })}
+        {/* Vertical Gold Brand Name */}
+        <div className="flex-1 flex items-center justify-center py-6">
+          <span 
+            className="theme-gradient-text uppercase font-black tracking-[0.35em] text-xs md:text-sm [writing-mode:vertical-lr] rotate-180"
+          >
+            EMAGYNE
+          </span>
         </div>
 
         {/* Exit Icon-only Button */}
@@ -172,7 +149,7 @@ function NavigatorContent({
             playSound('click');
             setIsExitModalOpen(true);
           }}
-          className="p-2.5 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-all cursor-pointer mt-4 flex items-center justify-center"
+          className="p-2 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-all cursor-pointer flex items-center justify-center shrink-0"
           title="Exit Simulation"
         >
           <LogOut size={16} />
@@ -1041,8 +1018,8 @@ Explanation: 5 + 3 is equal to 8."
               >
                 {/* Navigator Sidebar (Desktop) */}
                 <aside className={cn(
-                  "hidden md:block glass-panel p-4 md:p-6 rounded-3xl h-fit sticky top-8 transition-all duration-300 shrink-0",
-                  isSidebarCollapsed ? "w-20" : "w-72"
+                  "hidden md:block glass-panel rounded-3xl h-fit sticky top-8 transition-all duration-300 shrink-0",
+                  isSidebarCollapsed ? "w-16 p-3" : "w-72 p-6"
                 )}>
                   <NavigatorContent 
                     state={state} 
