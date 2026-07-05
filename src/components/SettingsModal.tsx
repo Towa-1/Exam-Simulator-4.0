@@ -104,7 +104,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             initial={{ scale: 0.95, opacity: 0, y: 10 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
-            className="glass-panel relative w-full max-w-md p-6 md:p-8 rounded-3xl z-10"
+            className="glass-panel relative w-full max-w-md p-6 md:p-8 rounded-3xl z-10 flex flex-col max-h-[90vh]"
           >
             <button
               onClick={onClose}
@@ -114,9 +114,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <X size={18} />
             </button>
 
-            <h2 className="text-xl font-black uppercase tracking-tight text-primary mb-6">Preferences & API</h2>
+            <h2 className="text-xl font-black uppercase tracking-tight text-primary mb-6 shrink-0">Preferences & API</h2>
 
-            <form onSubmit={handleSave} className="space-y-5">
+            <form onSubmit={handleSave} className="space-y-5 overflow-y-auto flex-1 custom-scrollbar pr-1.5 -mr-1.5">
               {/* Provider Selection */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-wider">
