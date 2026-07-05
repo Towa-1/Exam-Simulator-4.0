@@ -17,20 +17,26 @@ export async function parseQuestions(rawText: string): Promise<Question[]> {
     throw new Error("MISSING_API_KEY");
   }
 
-  const prompt = `Parse the following text into a structured JSON array of exam questions.
-  The input might be in a 5-column pipe format: Type | Question | Options/Unit | Answer | Explanation
-  Or it might be raw unstructured text.
-  
-  Rules:
-  - Type: 'MCQ' or 'NUM'.
-  - Question: The question text (can include LaTeX).
-  - Options: For MCQ, an array of strings. For NUM, null.
-  - Unit: For NUM, the unit string (e.g., 'kg', 'm/s'). For MCQ, null.
-  - Answer: The correct answer (string).
-  - Explanation: Detailed explanation (can include LaTeX).
-  
-  Input Text:
-  ${rawText}`;
+  const prompt = `You are an expert exam parser. Your job is to convert raw, unstructured exam questions (e.g., copy-pasted text from documents, PDFs, exams, or books) into a structured JSON array matching the Question type definition:
+
+interface Question {
+  id: string; // Generate a unique string id (e.g. q-1, q-2, etc.)
+  type: 'MCQ' | 'NUM'; // MCQ for Multiple Choice questions, NUM for numerical/open fill-in-the-blank answers
+  question: string; // The text of the question. You MUST style all code snippets, variables, keywords, functions, numbers, code examples, or syntax keywords with backticks (\`code\`) so they render as highlighted code pills (e.g., \`1234567.89\`, \`f"{n:,.1f}"\`, \`print()\`).
+  options?: string[]; // For MCQ: An array of options (DO NOT include option letter prefixes like "A. ", "B. ", "a) ", "1. ", just the option text itself). Wrap code snippets, numbers, or code variables inside options with backticks (\`code\`). For NUM: omit or set to null.
+  unit?: string; // For NUM: The unit string if applicable (e.g., "kg", "m/s", "pixels"). For MCQ: omit or set to null.
+  answer: string; // The correct answer text. For MCQ, this must exactly match one of the values in the 'options' array. For NUM, the correct numerical value.
+  explanation: string; // A detailed explanation of why the answer is correct. Wrap code snippets, variables, numbers, and code blocks in the explanation with backticks (\`code\`).
+}
+
+Instructions:
+1. **Unstructured Input**: Read the user's unstructured input text, identify each question, its options, correct answer, and explanation.
+2. **Formatting Code/Syntax**: You MUST identify code elements, programming syntax, SQL queries, console commands, variables (like x, n, total), keywords, function names, class names, numbers, or outputs in the question, options, and explanation and wrap them in backticks (e.g. \`f"{n:,.1f}"\`). This is crucial for rendering the code elements inside the app beautifully highlighted.
+3. **LaTeX**: If the question contains mathematical formulas (like integrals, derivatives, greek letters, fractions), keep them inside LaTeX delimiters (e.g., $x^2$, $\\pi$). Do not mix LaTeX math mode and backticks for the same term.
+4. **Answer Matching**: Ensure that for MCQ, the 'answer' field matches one of the values in the 'options' array exactly (including the backticks if that option contains them).
+
+Input text to parse:
+${rawText}`;
 
   if (provider === "openai" || provider === "deepseek" || provider === "custom") {
     let url = "";

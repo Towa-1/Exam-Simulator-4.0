@@ -684,14 +684,26 @@ export default function App() {
                     </div>
                   )}
 
-                  <p className="text-slate-400 text-xs md:text-sm leading-relaxed mb-5">
-                    Paste raw text or your question bank in the 5-column pipe format below. Our integrated AI will structure it into a proctored simulator experience.
+                   <p className="text-slate-400 text-xs md:text-sm leading-relaxed mb-5">
+                    Paste your questions and explanations in any format (e.g., copied from a PDF, document, or site). Our AI will automatically structure them and highlight code snippets.
                   </p>
                   
                   <textarea
                     value={rawInput}
                     onChange={(e) => setRawInput(e.target.value)}
-                    placeholder="MCQ | What is the capital of France? | Paris, Berlin, Rome, Madrid | Paris | Capital of France.&#10;NUM | What is the square root of 64? | | 8 | 8 * 8 = 64."
+                    placeholder="Example of pasting questions normally:
+
+Q1. Which f-string correctly formats the number 1234567.89 to show 1,234,567.9 (comma thousands separator, one decimal place)?
+A. f&quot;{n:.1,f}&quot;
+B. f&quot;{n:,.1f}&quot;
+C. f&quot;{n:1.f}&quot;
+D. f&quot;{n:.1e}&quot;
+Answer: B
+Explanation: The format specifier ,.1f adds a comma thousands separator and rounds to one decimal place.
+
+Q2. What is the value of 5 + 3?
+Answer: 8
+Explanation: 5 + 3 is equal to 8."
                     className="flex-1 bg-slate-950/40 border border-primary/10 hover:border-primary/20 focus:border-primary/40 rounded-2xl p-5 font-mono text-xs md:text-sm focus:outline-none transition-colors resize-none custom-scrollbar placeholder:text-slate-700"
                   />
 
