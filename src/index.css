@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-primary: rgb(var(--theme-primary));
+  --color-primary-hover: rgb(var(--theme-primary-hover));
+  --color-primary-glow: var(--theme-glow);
+}
+
+:root {
+  /* Amber Gold - Default Theme */
+  --theme-primary: 234, 179, 8; /* yellow-500 */
+  --theme-primary-hover: 202, 138, 4; /* yellow-600 */
+  --theme-glow: rgba(234, 179, 8, 0.15);
+  --theme-bg-gradient-color: rgba(234, 179, 8, 0.06);
+  --theme-text-gradient-start: #fef08a; /* yellow-200 */
+  --theme-text-gradient-middle: #eab308; /* yellow-500 */
+  --theme-text-gradient-end: #a16207; /* yellow-700 */
+}
+
+.theme-emerald {
+  /* Emerald Cyber */
+  --theme-primary: 16, 185, 129; /* emerald-500 */
+  --theme-primary-hover: 5, 150, 105; /* emerald-600 */
+  --theme-glow: rgba(16, 185, 129, 0.15);
+  --theme-bg-gradient-color: rgba(16, 185, 129, 0.06);
+  --theme-text-gradient-start: #a7f3d0; /* emerald-200 */
+  --theme-text-gradient-middle: #10b981; /* emerald-500 */
+  --theme-text-gradient-end: #047857; /* emerald-700 */
+}
+
+.theme-sapphire {
+  /* Sapphire Deep */
+  --theme-primary: 59, 130, 246; /* blue-500 */
+  --theme-primary-hover: 37, 99, 235; /* blue-600 */
+  --theme-glow: rgba(59, 130, 246, 0.15);
+  --theme-bg-gradient-color: rgba(59, 130, 246, 0.06);
+  --theme-text-gradient-start: #bfdbfe; /* blue-200 */
+  --theme-text-gradient-middle: #3b82f6; /* blue-500 */
+  --theme-text-gradient-end: #1d4ed8; /* blue-700 */
+}
+
+.theme-ruby {
+  /* Ruby Crimson */
+  --theme-primary: 239, 68, 68; /* red-500 */
+  --theme-primary-hover: 220, 38, 38; /* red-600 */
+  --theme-glow: rgba(239, 68, 68, 0.15);
+  --theme-bg-gradient-color: rgba(239, 68, 68, 0.06);
+  --theme-text-gradient-start: #fecaca; /* red-200 */
+  --theme-text-gradient-middle: #ef4444; /* red-500 */
+  --theme-text-gradient-end: #b91c1c; /* red-700 */
+}
+
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-200 min-h-screen transition-all duration-500 ease-in-out selection:bg-primary/30 selection:text-white;
+    background-image: radial-gradient(circle at 50% 50%, var(--theme-bg-gradient-color) 0%, rgba(2, 6, 23, 1) 100%);
+  }
+}
+
+@layer components {
+  .theme-gradient-text {
+    background-image: linear-gradient(to bottom, var(--theme-text-gradient-start), var(--theme-text-gradient-middle), var(--theme-text-gradient-end));
+    @apply bg-clip-text text-transparent font-black tracking-tighter;
+  }
+
+  .glass-panel {
+    @apply bg-slate-900/60 backdrop-blur-2xl border border-primary/20 shadow-2xl transition-all duration-300;
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5), 0 0 50px -15px var(--theme-glow);
+  }
+
+  .glass-panel-hover {
+    @apply hover:border-primary/40 hover:shadow-[0_10px_45px_-5px_rgba(0,0,0,0.6),_0_0_60px_-10px_var(--theme-glow)];
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-slate-950/40 rounded-full;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-primary/25 rounded-full hover:bg-primary/50 transition-colors duration-200;
+  }
+  
+  /* Additional animations */
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 15px -3px var(--theme-glow);
+    }
+    50% {
+      box-shadow: 0 0 25px 2px var(--theme-glow);
+    }
+  }
+
+  .pulse-glow-effect {
+    animation: pulse-glow 3s infinite;
+  }
+}
