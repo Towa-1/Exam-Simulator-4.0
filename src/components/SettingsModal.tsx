@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Eye, EyeOff, ShieldCheck, Key, Volume2, Keyboard, Trash2, Cpu } from 'lucide-react';
+import { X, Eye, EyeOff, ShieldCheck, Key, Volume2, Keyboard, Trash2, Cpu, ExternalLink, Sparkles } from 'lucide-react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -148,6 +148,61 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     )}
                   </div>
                 </div>
+
+                {/* Instructions on how to get API Keys */}
+                {provider === 'gemini' && (
+                  <div className="mt-2.5 p-4 bg-primary/5 border border-primary/10 rounded-2xl space-y-2 text-[11px] md:text-xs text-slate-400 leading-relaxed">
+                    <div className="flex items-center gap-1.5 font-bold text-primary mb-1">
+                      <Sparkles size={13} className="text-primary animate-pulse" />
+                      Get a free Google Gemini API Key:
+                    </div>
+                    <ol className="list-decimal list-inside space-y-1.5 pl-0.5">
+                      <li>
+                        Go to{' '}
+                        <a 
+                          href="https://aistudio.google.com/" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline inline-flex items-center gap-0.5 font-bold cursor-pointer"
+                        >
+                          Google AI Studio <ExternalLink size={10} className="inline ml-0.5" />
+                        </a>
+                      </li>
+                      <li>Sign in with your Google Account.</li>
+                      <li>Click the <strong className="text-slate-300">"Get API key"</strong> button in the left menu.</li>
+                      <li>Click <strong className="text-slate-300">"Create API key"</strong> and select a project.</li>
+                      <li>Copy the key (starts with <code className="text-primary bg-primary/10 px-1 py-0.5 rounded font-mono text-[10px]">AIzaSy...</code>) and paste it above!</li>
+                    </ol>
+                  </div>
+                )}
+
+                {provider === 'openai' && (
+                  <div className="mt-2.5 p-3 bg-slate-950/40 border border-slate-800 rounded-2xl text-[11px] md:text-xs text-slate-400 leading-normal">
+                    Need an OpenAI API Key? Get one from the{' '}
+                    <a 
+                      href="https://platform.openai.com/api-keys" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline inline-flex items-center gap-0.5 font-bold cursor-pointer"
+                    >
+                      OpenAI Developer Dashboard <ExternalLink size={10} className="inline ml-0.5" />
+                    </a>.
+                  </div>
+                )}
+
+                {provider === 'deepseek' && (
+                  <div className="mt-2.5 p-3 bg-slate-950/40 border border-slate-800 rounded-2xl text-[11px] md:text-xs text-slate-400 leading-normal">
+                    Need a DeepSeek API Key? Get one from the{' '}
+                    <a 
+                      href="https://platform.deepseek.com/api_keys" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline inline-flex items-center gap-0.5 font-bold cursor-pointer"
+                    >
+                      DeepSeek Console <ExternalLink size={10} className="inline ml-0.5" />
+                    </a>.
+                  </div>
+                )}
               </div>
 
               {/* Custom Provider Fields */}

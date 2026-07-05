@@ -35,7 +35,8 @@ import {
   Calendar,
   ChevronRight,
   HelpCircle,
-  Sparkle
+  Sparkle,
+  ExternalLink
 } from 'lucide-react';
 
 const STORAGE_KEY = 'emagyne_exam_state';
@@ -682,22 +683,33 @@ export default function App() {
 
                   {/* API Key warning guard inside input box */}
                   {!hasApiKey && (
-                    <div className="mt-4 p-3.5 bg-yellow-500/5 border border-yellow-500/10 rounded-2xl flex items-center justify-between gap-3">
+                    <div className="mt-4 p-3.5 bg-yellow-500/5 border border-yellow-500/10 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5">
                         <Key className="text-yellow-500 shrink-0" size={16} />
                         <span className="text-[11px] md:text-xs text-slate-400 leading-normal">
-                          <strong>No API Key Configured.</strong> To generate exams from custom text, add an API Key in Settings.
+                          <strong>No API Key Configured.</strong> To generate exams using AI, you need a Gemini API Key. You can get a free key from Google AI Studio.
                         </span>
                       </div>
-                      <button
-                        onClick={() => {
-                          playSound('click');
-                          setIsSettingsOpen(true);
-                        }}
-                        className="text-[11px] text-yellow-500 font-bold hover:underline shrink-0 cursor-pointer"
-                      >
-                        Add Key
-                      </button>
+                      <div className="flex gap-3 shrink-0">
+                        <a
+                          href="https://aistudio.google.com/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-yellow-500 font-bold hover:underline cursor-pointer flex items-center gap-0.5"
+                        >
+                          Get Free Key <ExternalLink size={10} />
+                        </a>
+                        <span className="text-slate-700 hidden sm:inline">|</span>
+                        <button
+                          onClick={() => {
+                            playSound('click');
+                            setIsSettingsOpen(true);
+                          }}
+                          className="text-[11px] text-yellow-500 font-bold hover:underline cursor-pointer"
+                        >
+                          Add Key
+                        </button>
+                      </div>
                     </div>
                   )}
 
