@@ -7,8 +7,13 @@ interface Props {
 }
 
 export function KaTeXRenderer({ content, block = false }: Props) {
+  // Normalize LaTeX delimiters commonly returned by LLMs
+  let normalized = content;
+  normalized = normalized.replace(/\\\[([\s\S]+?)\\\]/g, '$$$$$1$$$$');
+  normalized = normalized.replace(/\\\(([\s\S]+?)\\\)/g, '$$$1$$');
+
   // Simple regex to find LaTeX between $...$ or $$...$$
-  const parts = content.split(/(\$\$[\s\S]+?\$\$|\$[\s\S]+?\$)/g);
+  const parts = normalized.split(/(\$\$[\s\S]+?\$\$|\$[\s\S]+?\$)/g);
 
   return (
     <span>

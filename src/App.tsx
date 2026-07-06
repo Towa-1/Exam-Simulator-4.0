@@ -108,6 +108,8 @@ interface NavigatorContentProps {
   setIsExitModalOpen: (open: boolean) => void;
   isCollapsed?: boolean;
   setIsCollapsed?: (collapsed: boolean) => void;
+  isChatOpen: boolean;
+  setIsChatOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
 }
 
 function NavigatorContent({ 
@@ -118,11 +120,13 @@ function NavigatorContent({
   setSearchQuery, 
   setIsExitModalOpen,
   isCollapsed = false,
-  setIsCollapsed
+  setIsCollapsed,
+  isChatOpen,
+  setIsChatOpen
 }: NavigatorContentProps) {
   if (isCollapsed) {
     return (
-      <div className="flex flex-col items-center justify-between h-[340px] py-1 w-full select-none">
+      <div className="flex flex-col items-center justify-between h-[360px] py-1 w-full select-none">
         {/* Expand Toggle Button */}
         <button
           onClick={() => {
@@ -143,6 +147,21 @@ function NavigatorContent({
             EMAGYNE
           </span>
         </div>
+
+        {/* Chat Toggle Icon-only Button */}
+        <button
+          onClick={() => {
+            playSound('click');
+            setIsChatOpen(prev => !prev);
+          }}
+          className={cn(
+            "p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 mb-3",
+            isChatOpen ? "bg-primary/20 border-primary text-primary" : "border-primary/10 text-slate-400 hover:text-primary hover:border-primary/30"
+          )}
+          title="Toggle AI Assistant"
+        >
+          <Sparkles size={16} fill={isChatOpen ? "currentColor" : "none"} />
+        </button>
 
         {/* Exit Icon-only Button */}
         <button
@@ -224,6 +243,23 @@ function NavigatorContent({
           );
         })}
       </div>
+
+      {/* AI Assistant Sidebar Toggle Button */}
+      <button
+        onClick={() => {
+          playSound('click');
+          setIsChatOpen(prev => !prev);
+        }}
+        className={cn(
+          "w-full mb-6 py-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-102 active:scale-98 shadow-md",
+          isChatOpen 
+            ? "bg-primary text-slate-950 border-primary" 
+            : "border-primary/25 text-primary bg-primary/5 hover:bg-primary/10 hover:border-primary/45"
+        )}
+      >
+        <Sparkles size={13} fill={isChatOpen ? "currentColor" : "none"} />
+        ASK AI ASSISTANT
+      </button>
       
       <div className="space-y-2.5 pt-5 border-t border-slate-800">
         <div className="flex items-center gap-2.5 text-xs font-bold text-slate-400">
@@ -641,12 +677,13 @@ export default function App() {
 
   const currentQuestion = state.questions[currentQuestionIndex];
   const timePercentage = state.duration > 0 ? (state.timeRemaining / (state.duration * 60)) * 100 : 0;
+  const maxPageWidth = isChatOpen ? "max-w-[1400px]" : "max-w-6xl";
 
   return (
     <ErrorBoundary>
       <div className="min-h-screen p-4 md:p-8 flex flex-col items-center">
         {/* Universal Premium Header */}
-        <header className="w-full max-w-6xl flex justify-between items-center mb-6 md:mb-10">
+        <header className={cn("w-full flex justify-between items-center mb-6 md:mb-10 transition-all duration-500 ease-in-out", maxPageWidth)}>
           <div 
             className="flex items-center gap-2.5 md:gap-3.5 cursor-pointer hover:opacity-90 active:scale-98 transition-all"
             onClick={() => {
@@ -719,7 +756,7 @@ export default function App() {
         </header>
 
         {/* Main Content Dashboard */}
-        <main className="w-full max-w-6xl flex-1 flex flex-col justify-center">
+        <main className={cn("w-full flex-1 flex flex-col justify-center transition-all duration-500 ease-in-out", maxPageWidth)}>
           <AnimatePresence mode="wait">
             {state.phase === 'INPUT' && (
               <motion.div
@@ -1032,6 +1069,8 @@ Explanation: 5 + 3 is equal to 8."
                     setIsExitModalOpen={setIsExitModalOpen}
                     isCollapsed={isSidebarCollapsed}
                     setIsCollapsed={setIsSidebarCollapsed}
+                    isChatOpen={isChatOpen}
+                    setIsChatOpen={setIsChatOpen}
                   />
                 </aside>
 
@@ -1075,6 +1114,8 @@ Explanation: 5 + 3 is equal to 8."
                           searchQuery={searchQuery}
                           setSearchQuery={setSearchQuery}
                           setIsExitModalOpen={setIsExitModalOpen}
+                          isChatOpen={isChatOpen}
+                          setIsChatOpen={setIsChatOpen}
                         />
                       </motion.div>
                     </div>
@@ -1296,6 +1337,21 @@ Explanation: 5 + 3 is equal to 8."
                     </div>
                   </div>
                 </div>
+
+                {/* Inline AI Chat Drawer (Desktop only, sticky alongside content) */}
+                {isChatOpen && (
+                  <aside className="hidden lg:block w-[420px] shrink-0 sticky top-8 h-[calc(100vh-8rem)] min-h-[500px]">
+                    <AIChatDrawer
+                      isOpen={true}
+                      onClose={() => setIsChatOpen(false)}
+                      activeQuestion={state.questions[currentQuestionIndex]}
+                      activeQuestionIndex={currentQuestionIndex}
+                      userAnswer={state.userAnswers[state.questions[currentQuestionIndex]?.id]}
+                      isAnswerChecked={state.checkedAnswers.has(state.questions[currentQuestionIndex]?.id)}
+                      isInline={true}
+                    />
+                  </aside>
+                )}
               </motion.div>
             )}
 
@@ -1304,8 +1360,12 @@ Explanation: 5 + 3 is equal to 8."
                 key="results"
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-3xl mx-auto"
+                className={cn(
+                  "w-full transition-all duration-500 ease-in-out flex flex-col lg:flex-row gap-6 md:gap-8 items-start",
+                  isChatOpen ? "max-w-none" : "max-w-3xl mx-auto"
+                )}
               >
+                <div className="flex-1 min-w-0 w-full">
                 <div className="glass-panel p-8 md:p-10 rounded-3xl text-center mb-8">
                   <Trophy className="text-primary mx-auto mb-4 animate-bounce" size={48} />
                   <h2 className="text-2xl md:text-3xl font-black mb-1 uppercase tracking-tight">Performance Analytics</h2>
@@ -1418,30 +1478,49 @@ Explanation: 5 + 3 is equal to 8."
                     );
                   })}
                 </div>
-              </motion.div>
+              </div>
+
+              {/* Inline AI Chat Drawer (Desktop only, sticky alongside content) */}
+              {isChatOpen && (
+                <aside className="hidden lg:block w-[420px] shrink-0 sticky top-8 h-[calc(100vh-8rem)] min-h-[500px]">
+                  <AIChatDrawer
+                    isOpen={true}
+                    onClose={() => setIsChatOpen(false)}
+                    activeQuestion={state.questions[currentQuestionIndex]}
+                    activeQuestionIndex={currentQuestionIndex}
+                    userAnswer={state.userAnswers[state.questions[currentQuestionIndex]?.id]}
+                    isAnswerChecked={true}
+                    isInline={true}
+                  />
+                </aside>
+              )}
+            </motion.div>
             )}
           </AnimatePresence>
         </main>
 
-        {/* AI Chat Drawer */}
-        <AIChatDrawer
-          isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-          activeQuestion={state.questions[currentQuestionIndex]}
-          activeQuestionIndex={currentQuestionIndex}
-          userAnswer={state.userAnswers[state.questions[currentQuestionIndex]?.id]}
-          isAnswerChecked={state.checkedAnswers.has(state.questions[currentQuestionIndex]?.id)}
-        />
+        {/* AI Chat Drawer (Mobile/Tablet overlay version) */}
+        <div className="lg:hidden">
+          <AIChatDrawer
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
+            activeQuestion={state.questions[currentQuestionIndex]}
+            activeQuestionIndex={currentQuestionIndex}
+            userAnswer={state.userAnswers[state.questions[currentQuestionIndex]?.id]}
+            isAnswerChecked={state.checkedAnswers.has(state.questions[currentQuestionIndex]?.id)}
+            isInline={false}
+          />
+        </div>
 
-        {/* Floating AI Assistant Button */}
+        {/* Floating AI Assistant Button (Relocated and Transparent) */}
         {state.phase !== 'INPUT' && state.phase !== 'SETUP' && (
           <button
             onClick={() => {
               playSound('click');
-              setIsChatOpen(true);
+              setIsChatOpen(prev => !prev);
             }}
-            className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-primary hover:bg-primary-hover text-slate-950 rounded-full flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-110 active:scale-95 transition-all cursor-pointer pulse-glow-effect border border-primary/20 animate-fade-in"
-            title="Open AI Chat Assistant"
+            className="fixed bottom-6 left-6 z-40 w-14 h-14 bg-slate-950/40 backdrop-blur-md border border-primary/20 text-primary rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer opacity-60 hover:opacity-100 hover:border-primary/50 animate-fade-in"
+            title="Toggle AI Assistant"
           >
             <Sparkles size={24} fill="currentColor" />
           </button>
@@ -1461,7 +1540,7 @@ Explanation: 5 + 3 is equal to 8."
           onClose={() => setIsSettingsOpen(false)}
         />
 
-        <footer className="w-full max-w-6xl mt-12 py-6 border-t border-primary/5 text-center">
+        <footer className={cn("w-full mt-12 py-6 border-t border-primary/5 text-center transition-all duration-500 ease-in-out", maxPageWidth)}>
           <p className="text-slate-600 text-[9px] font-black uppercase tracking-[0.25em]">
             &copy; 2026 EMAGYNE SIMULATOR &bull; PROFESSIONAL INTERFACE
           </p>
