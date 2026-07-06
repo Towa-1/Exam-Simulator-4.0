@@ -62,8 +62,8 @@ export function AIChatDrawer({
   };
   
   const provider = localStorage.getItem('emagyne_chat_provider') || localStorage.getItem('emagyne_api_provider') || 'gemini';
-  const providerName = provider === 'gemini' ? 'Gemini' : provider === 'openai' ? 'OpenAI' : provider === 'deepseek' ? 'DeepSeek' : 'Custom AI';
-  const tutorTitle = provider === 'openai' ? 'ChatGPT Tutor' : provider === 'deepseek' ? 'DeepSeek Tutor' : 'Gemini Tutor';
+  const providerName = provider === 'gemini' ? 'Gemini' : provider === 'openai' ? 'OpenAI' : provider === 'deepseek' ? 'DeepSeek' : provider === 'openrouter' ? 'OpenRouter' : 'Custom AI';
+  const tutorTitle = provider === 'openai' ? 'ChatGPT Tutor' : provider === 'deepseek' ? 'DeepSeek Tutor' : provider === 'openrouter' ? 'OpenRouter Tutor' : 'Gemini Tutor';
 
   // Persistence
   useEffect(() => {

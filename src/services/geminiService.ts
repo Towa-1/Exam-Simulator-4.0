@@ -48,7 +48,7 @@ Instructions:
 Input text to parse:
 ${rawText}`;
 
-  if (provider === "openai" || provider === "deepseek" || provider === "custom") {
+  if (provider === "openai" || provider === "deepseek" || provider === "openrouter" || provider === "custom") {
     let url = "";
     let model = "";
 
@@ -58,6 +58,9 @@ ${rawText}`;
     } else if (provider === "deepseek") {
       url = "/deepseek-api/chat/completions";
       model = "deepseek-chat";
+    } else if (provider === "openrouter") {
+      url = "https://openrouter.ai/api/v1/chat/completions";
+      model = customModel || "google/gemini-2.5-flash:free";
     } else {
       url = `${customUrl.replace(/\/$/, "")}/chat/completions`;
       model = customModel || "gpt-4o-mini";
@@ -201,7 +204,7 @@ export async function generateChatResponse(messages: ChatMessage[], systemInstru
     throw new Error("MISSING_API_KEY");
   }
 
-  if (provider === "openai" || provider === "deepseek" || provider === "custom") {
+  if (provider === "openai" || provider === "deepseek" || provider === "openrouter" || provider === "custom") {
     let url = "";
     let model = "";
 
@@ -211,6 +214,9 @@ export async function generateChatResponse(messages: ChatMessage[], systemInstru
     } else if (provider === "deepseek") {
       url = "/deepseek-api/chat/completions";
       model = "deepseek-chat";
+    } else if (provider === "openrouter") {
+      url = "https://openrouter.ai/api/v1/chat/completions";
+      model = customModel || "google/gemini-2.5-flash:free";
     } else {
       url = `${customUrl.replace(/\/$/, "")}/chat/completions`;
       model = customModel || "gpt-4o-mini";

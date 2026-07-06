@@ -28,14 +28,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<'generator' | 'tutor' | 'general'>('generator');
   
   // Generator API settings
-  const [provider, setProvider] = useState<'gemini' | 'openai' | 'deepseek' | 'custom'>('gemini');
+  const [provider, setProvider] = useState<'gemini' | 'openai' | 'deepseek' | 'openrouter' | 'custom'>('gemini');
   const [apiKey, setApiKey] = useState('');
   const [customUrl, setCustomUrl] = useState('');
   const [customModel, setCustomModel] = useState('');
   const [showKey, setShowKey] = useState(false);
 
   // AI Tutor API settings
-  const [chatProvider, setChatProvider] = useState<'gemini' | 'openai' | 'deepseek' | 'custom'>('gemini');
+  const [chatProvider, setChatProvider] = useState<'gemini' | 'openai' | 'deepseek' | 'openrouter' | 'custom'>('gemini');
   const [chatApiKey, setChatApiKey] = useState('');
   const [chatCustomUrl, setChatCustomUrl] = useState('');
   const [chatCustomModel, setChatCustomModel] = useState('');
@@ -200,6 +200,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <option value="gemini">Google Gemini</option>
                       <option value="openai">OpenAI (ChatGPT)</option>
                       <option value="deepseek">DeepSeek</option>
+                      <option value="openrouter">OpenRouter (Free Models)</option>
                       <option value="custom">Custom (OpenAI-Compatible)</option>
                     </select>
                   </div>
@@ -214,7 +215,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           ? 'OpenAI API Key' 
                           : provider === 'deepseek'
                             ? 'DeepSeek API Key'
-                            : 'API Key'}
+                            : provider === 'openrouter'
+                              ? 'OpenRouter API Key'
+                              : 'API Key'}
                     </label>
                     <div className="relative flex items-center">
                       <input
@@ -228,7 +231,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               ? 'OpenAI API Key (sk-...)' 
                               : provider === 'deepseek'
                                 ? 'DeepSeek API Key (sk-...)'
-                                : 'API Key'
+                                : provider === 'openrouter'
+                                  ? 'OpenRouter Key (sk-or-...)'
+                                  : 'API Key'
                         }
                         className="w-full bg-slate-950/50 border border-primary/20 rounded-xl py-3 pl-4 pr-20 text-sm focus:outline-none focus:border-primary/50 transition-colors font-mono text-primary"
                       />
@@ -295,7 +300,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     )}
 
                     {provider === 'deepseek' && (
-                      <div className="mt-2.5 p-3 bg-slate-950/40 border border-slate-800 rounded-2xl text-[11px] md:text-xs text-slate-400 leading-normal">
+                      <div className="mt-2.5 p-3 bg-slate-950/40 border border-slate-800 rounded-2xl text-[11px] md:text-xs text-slate-400 leading-normal font-semibold">
                         Need a DeepSeek API Key? Get one from the{' '}
                         <a 
                           href="https://platform.deepseek.com/api_keys" 
@@ -305,6 +310,30 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         >
                           DeepSeek Console <ExternalLink size={10} className="inline ml-0.5" />
                         </a>.
+                      </div>
+                    )}
+
+                    {provider === 'openrouter' && (
+                      <div className="mt-2.5 p-4 bg-primary/5 border border-primary/10 rounded-2xl space-y-2 text-[11px] md:text-xs text-slate-400 leading-relaxed font-semibold">
+                        <div className="flex items-center gap-1.5 font-bold text-primary mb-1">
+                          <Sparkles size={13} className="text-primary animate-pulse" />
+                          Get a free OpenRouter API Key:
+                        </div>
+                        <ol className="list-decimal list-inside space-y-1.5 pl-0.5">
+                          <li>
+                            Go to{' '}
+                            <a 
+                              href="https://openrouter.ai/keys" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline inline-flex items-center gap-0.5 font-bold cursor-pointer"
+                            >
+                              OpenRouter Keys <ExternalLink size={10} className="inline ml-0.5" />
+                            </a>
+                          </li>
+                          <li>Click <strong className="text-slate-350">"Create Key"</strong> (No credit card or billing details required!).</li>
+                          <li>Copy the key (starts with <code className="text-primary bg-primary/10 px-1 py-0.5 rounded font-mono text-[10px]">sk-or-...</code>) and paste it above!</li>
+                        </ol>
                       </div>
                     )}
                   </div>
@@ -361,6 +390,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <option value="gemini">Google Gemini</option>
                       <option value="openai">OpenAI (ChatGPT)</option>
                       <option value="deepseek">DeepSeek</option>
+                      <option value="openrouter">OpenRouter (Free Models)</option>
                       <option value="custom">Custom (OpenAI-Compatible)</option>
                     </select>
                   </div>
@@ -375,7 +405,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           ? 'OpenAI API Key (Chat)' 
                           : chatProvider === 'deepseek'
                             ? 'DeepSeek API Key (Chat)'
-                            : 'API Key (Chat)'}
+                            : chatProvider === 'openrouter'
+                              ? 'OpenRouter API Key (Chat)'
+                              : 'API Key (Chat)'}
                     </label>
                     <div className="relative flex items-center">
                       <input
@@ -445,6 +477,20 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           className="text-primary hover:underline inline-flex items-center gap-0.5 font-bold cursor-pointer"
                         >
                           DeepSeek Console <ExternalLink size={10} className="inline ml-0.5" />
+                        </a>.
+                      </div>
+                    )}
+
+                    {chatProvider === 'openrouter' && (
+                      <div className="mt-2.5 p-3.5 bg-primary/5 border border-primary/10 rounded-2xl text-[11px] md:text-xs text-slate-400 leading-normal font-semibold">
+                        Get your free OpenRouter key from{' '}
+                        <a 
+                          href="https://openrouter.ai/keys" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline inline-flex items-center gap-0.5 font-bold cursor-pointer"
+                        >
+                          OpenRouter Keys <ExternalLink size={10} className="inline ml-0.5" />
                         </a>.
                       </div>
                     )}
