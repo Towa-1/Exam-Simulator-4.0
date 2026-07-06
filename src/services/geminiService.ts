@@ -10,6 +10,16 @@ const getApiConfig = () => {
   return { provider, key, customUrl, customModel };
 };
 
+const getChatApiConfig = () => {
+  const provider = localStorage.getItem("emagyne_chat_provider") || localStorage.getItem("emagyne_api_provider") || "gemini";
+  const key = localStorage.getItem("emagyne_chat_api_key") || localStorage.getItem("emagyne_api_key") || (process.env as any).GEMINI_API_KEY || "";
+  const customUrl = localStorage.getItem("emagyne_chat_custom_url") || localStorage.getItem("emagyne_chat_custom_url") || "";
+  const customModel = localStorage.getItem("emagyne_chat_custom_model") || localStorage.getItem("emagyne_chat_custom_model") || "";
+
+  return { provider, key, customUrl, customModel };
+};
+
+
 export async function parseQuestions(rawText: string): Promise<Question[]> {
   const { provider, key, customUrl, customModel } = getApiConfig();
 
@@ -178,3 +188,86 @@ ${rawText}`;
     }
   }
 }
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  content: string;
+}
+
+export async function generateChatResponse(messages: ChatMessage[], systemInstruction?: string): Promise<string> {
+  const { provider, key, customUrl, customModel } = getChatApiConfig();
+
+  if (!key || key === "MY_GEMINI_API_KEY" || key.trim() === "") {
+    throw new Error("MISSING_API_KEY");
+  }
+
+  if (provider === "openai" || provider === "deepseek" || provider === "custom") {
+    let url = "";
+    let model = "";
+
+    if (provider === "openai") {
+      url = "/openai-api/v1/chat/completions";
+      model = "gpt-4o-mini";
+    } else if (provider === "deepseek") {
+      url = "/deepseek-api/chat/completions";
+      model = "deepseek-chat";
+    } else {
+      url = `${customUrl.replace(/\/$/, "")}/chat/completions`;
+      model = customModel || "gpt-4o-mini";
+    }
+
+    const apiMessages = [];
+    if (systemInstruction) {
+      apiMessages.push({ role: "system", content: systemInstruction });
+    }
+    for (const msg of messages) {
+      apiMessages.push({
+        role: msg.role === 'model' ? 'assistant' : 'user',
+        content: msg.content
+      });
+    }
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${key}`
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: apiMessages
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      const errMsg = errData?.error?.message || `HTTP error ${response.status}`;
+      throw new Error(`API Error: ${errMsg}`);
+    }
+
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content;
+    if (!content) throw new Error("Empty response from AI provider");
+    return content;
+  } else {
+    // Gemini
+    const ai = new GoogleGenAI({ apiKey: key });
+    const contents = messages.map(msg => ({
+      role: msg.role,
+      parts: [{ text: msg.content }]
+    }));
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: contents,
+      config: systemInstruction ? {
+        systemInstruction: systemInstruction
+      } : undefined
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("Empty response from AI");
+    return text;
+  }
+}
+

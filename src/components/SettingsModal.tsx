@@ -25,11 +25,22 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+  const [activeTab, setActiveTab] = useState<'generator' | 'tutor' | 'general'>('generator');
+  
+  // Generator API settings
   const [provider, setProvider] = useState<'gemini' | 'openai' | 'deepseek' | 'custom'>('gemini');
   const [apiKey, setApiKey] = useState('');
   const [customUrl, setCustomUrl] = useState('');
   const [customModel, setCustomModel] = useState('');
   const [showKey, setShowKey] = useState(false);
+
+  // AI Tutor API settings
+  const [chatProvider, setChatProvider] = useState<'gemini' | 'openai' | 'deepseek' | 'custom'>('gemini');
+  const [chatApiKey, setChatApiKey] = useState('');
+  const [chatCustomUrl, setChatCustomUrl] = useState('');
+  const [chatCustomModel, setChatCustomModel] = useState('');
+  const [showChatKey, setShowChatKey] = useState(false);
+
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [shortcutsEnabled, setShortcutsEnabled] = useState(true);
   const [activeTheme, setActiveTheme] = useState<ThemeType>('gold');
@@ -41,10 +52,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       setApiKey(localStorage.getItem('emagyne_api_key') || '');
       setCustomUrl(localStorage.getItem('emagyne_custom_url') || '');
       setCustomModel(localStorage.getItem('emagyne_custom_model') || '');
+
+      setChatProvider((localStorage.getItem('emagyne_chat_provider') as any) || 'gemini');
+      setChatApiKey(localStorage.getItem('emagyne_chat_api_key') || '');
+      setChatCustomUrl(localStorage.getItem('emagyne_chat_custom_url') || '');
+      setChatCustomModel(localStorage.getItem('emagyne_chat_custom_model') || '');
+
       setSoundEnabled(localStorage.getItem('emagyne_sound_enabled') !== 'false');
       setShortcutsEnabled(localStorage.getItem('emagyne_shortcuts_enabled') !== 'false');
       setActiveTheme((localStorage.getItem('emagyne_theme') as ThemeType) || 'gold');
       setIsSaved(false);
+      setActiveTab('generator');
     }
   }, [isOpen]);
 
@@ -69,6 +87,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     localStorage.setItem('emagyne_api_key', apiKey.trim());
     localStorage.setItem('emagyne_custom_url', customUrl.trim());
     localStorage.setItem('emagyne_custom_model', customModel.trim());
+
+    localStorage.setItem('emagyne_chat_provider', chatProvider);
+    localStorage.setItem('emagyne_chat_api_key', chatApiKey.trim());
+    localStorage.setItem('emagyne_chat_custom_url', chatCustomUrl.trim());
+    localStorage.setItem('emagyne_chat_custom_model', chatCustomModel.trim());
+
     localStorage.setItem('emagyne_sound_enabled', String(soundEnabled));
     localStorage.setItem('emagyne_shortcuts_enabled', String(shortcutsEnabled));
     localStorage.setItem('emagyne_theme', activeTheme);
@@ -82,12 +106,21 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   };
 
   const handleClearKey = () => {
-    if (confirm('Are you sure you want to remove your saved API key?')) {
+    if (confirm('Are you sure you want to remove your saved Exam Generator API key?')) {
       localStorage.removeItem('emagyne_api_key');
       setApiKey('');
       window.dispatchEvent(new Event('storage'));
     }
   };
+
+  const handleClearChatKey = () => {
+    if (confirm('Are you sure you want to remove your saved AI Tutor API key?')) {
+      localStorage.removeItem('emagyne_chat_api_key');
+      setChatApiKey('');
+      window.dispatchEvent(new Event('storage'));
+    }
+  };
+
 
   return (
     <AnimatePresence>
@@ -114,86 +147,269 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <X size={18} />
             </button>
 
-            <h2 className="text-xl font-black uppercase tracking-tight text-primary mb-6 shrink-0">Preferences & API</h2>
+            <h2 className="text-xl font-black uppercase tracking-tight text-primary mb-3 shrink-0">Preferences & API</h2>
+
+            {/* Tabs Header */}
+            <div className="flex border-b border-primary/10 mb-5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setActiveTab('generator')}
+                className={cn(
+                  "flex-1 pb-2.5 text-xs font-black uppercase tracking-wider transition-all border-b-2 text-center cursor-pointer",
+                  activeTab === 'generator' ? "border-primary text-primary" : "border-transparent text-slate-500 hover:text-slate-300"
+                )}
+              >
+                Generator API
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('tutor')}
+                className={cn(
+                  "flex-1 pb-2.5 text-xs font-black uppercase tracking-wider transition-all border-b-2 text-center cursor-pointer",
+                  activeTab === 'tutor' ? "border-primary text-primary" : "border-transparent text-slate-500 hover:text-slate-300"
+                )}
+              >
+                AI Tutor API
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('general')}
+                className={cn(
+                  "flex-1 pb-2.5 text-xs font-black uppercase tracking-wider transition-all border-b-2 text-center cursor-pointer",
+                  activeTab === 'general' ? "border-primary text-primary" : "border-transparent text-slate-500 hover:text-slate-300"
+                )}
+              >
+                Simulator
+              </button>
+            </div>
 
             <form onSubmit={handleSave} className="space-y-5 overflow-y-auto flex-1 custom-scrollbar pr-1.5 -mr-1.5">
-              {/* Provider Selection */}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-wider">
-                  <Cpu size={14} className="text-primary" />
-                  API Provider
-                </label>
-                <select
-                  value={provider}
-                  onChange={(e) => setProvider(e.target.value as any)}
-                  className="w-full bg-slate-950/50 border border-primary/20 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-primary/50 text-slate-200 cursor-pointer"
-                >
-                  <option value="gemini">Google Gemini</option>
-                  <option value="openai">OpenAI (ChatGPT)</option>
-                  <option value="deepseek">DeepSeek</option>
-                  <option value="custom">Custom (OpenAI-Compatible)</option>
-                </select>
-              </div>
-
-              {/* API Key Input */}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-wider">
-                  <Key size={14} className="text-primary" />
-                  {provider === 'gemini' 
-                    ? 'Gemini API Key' 
-                    : provider === 'openai' 
-                      ? 'OpenAI API Key' 
-                      : provider === 'deepseek'
-                        ? 'DeepSeek API Key'
-                        : 'API Key'}
-                </label>
-                <div className="relative flex items-center">
-                  <input
-                    type={showKey ? 'text' : 'password'}
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder={
-                      provider === 'gemini' 
-                        ? 'AI Studio API Key (AIzaSy...)' 
-                        : provider === 'openai' 
-                          ? 'OpenAI API Key (sk-...)' 
-                          : provider === 'deepseek'
-                            ? 'DeepSeek API Key (sk-...)'
-                            : 'API Key'
-                    }
-                    className="w-full bg-slate-950/50 border border-primary/20 rounded-xl py-3 pl-4 pr-20 text-sm focus:outline-none focus:border-primary/50 transition-colors font-mono text-primary"
-                  />
-                  <div className="absolute right-2 flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setShowKey(!showKey)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              {activeTab === 'generator' && (
+                <div className="space-y-5">
+                  {/* Provider Selection */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-wider">
+                      <Cpu size={14} className="text-primary" />
+                      API Provider
+                    </label>
+                    <select
+                      value={provider}
+                      onChange={(e) => setProvider(e.target.value as any)}
+                      className="w-full bg-slate-950/50 border border-primary/20 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-primary/50 text-slate-200 cursor-pointer"
                     >
-                      {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                    {apiKey && (
-                      <button
-                        type="button"
-                        onClick={handleClearKey}
-                        className="p-1.5 rounded-lg text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
-                        title="Clear saved key"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <option value="gemini">Google Gemini</option>
+                      <option value="openai">OpenAI (ChatGPT)</option>
+                      <option value="deepseek">DeepSeek</option>
+                      <option value="custom">Custom (OpenAI-Compatible)</option>
+                    </select>
+                  </div>
+
+                  {/* API Key Input */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-wider">
+                      <Key size={14} className="text-primary" />
+                      {provider === 'gemini' 
+                        ? 'Gemini API Key' 
+                        : provider === 'openai' 
+                          ? 'OpenAI API Key' 
+                          : provider === 'deepseek'
+                            ? 'DeepSeek API Key'
+                            : 'API Key'}
+                    </label>
+                    <div className="relative flex items-center">
+                      <input
+                        type={showKey ? 'text' : 'password'}
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        placeholder={
+                          provider === 'gemini' 
+                            ? 'AI Studio API Key (AIzaSy...)' 
+                            : provider === 'openai' 
+                              ? 'OpenAI API Key (sk-...)' 
+                              : provider === 'deepseek'
+                                ? 'DeepSeek API Key (sk-...)'
+                                : 'API Key'
+                        }
+                        className="w-full bg-slate-950/50 border border-primary/20 rounded-xl py-3 pl-4 pr-20 text-sm focus:outline-none focus:border-primary/50 transition-colors font-mono text-primary"
+                      />
+                      <div className="absolute right-2 flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setShowKey(!showKey)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                        {apiKey && (
+                          <button
+                            type="button"
+                            onClick={handleClearKey}
+                            className="p-1.5 rounded-lg text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+                            title="Clear saved key"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Onboarding Help links */}
+                    {provider === 'gemini' && (
+                      <div className="mt-2.5 p-4 bg-primary/5 border border-primary/10 rounded-2xl space-y-2 text-[11px] md:text-xs text-slate-400 leading-relaxed">
+                        <div className="flex items-center gap-1.5 font-bold text-primary mb-1">
+                          <Sparkles size={13} className="text-primary animate-pulse" />
+                          Get a free Google Gemini API Key:
+                        </div>
+                        <ol className="list-decimal list-inside space-y-1.5 pl-0.5">
+                          <li>
+                            Go to{' '}
+                            <a 
+                              href="https://aistudio.google.com/" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline inline-flex items-center gap-0.5 font-bold cursor-pointer"
+                            >
+                              Google AI Studio <ExternalLink size={10} className="inline ml-0.5" />
+                            </a>
+                          </li>
+                          <li>Sign in with your Google Account.</li>
+                          <li>Click the <strong className="text-slate-350">"Get API key"</strong> button in the left menu.</li>
+                          <li>Click <strong className="text-slate-350">"Create API key"</strong> and select a project.</li>
+                          <li>Copy the key (starts with <code className="text-primary bg-primary/10 px-1 py-0.5 rounded font-mono text-[10px]">AIzaSy...</code>) and paste it above!</li>
+                        </ol>
+                      </div>
+                    )}
+
+                    {provider === 'openai' && (
+                      <div className="mt-2.5 p-3 bg-slate-950/40 border border-slate-800 rounded-2xl text-[11px] md:text-xs text-slate-400 leading-normal">
+                        Need an OpenAI API Key? Get one from the{' '}
+                        <a 
+                          href="https://platform.openai.com/api-keys" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline inline-flex items-center gap-0.5 font-bold cursor-pointer"
+                        >
+                          OpenAI Developer Dashboard <ExternalLink size={10} className="inline ml-0.5" />
+                        </a>.
+                      </div>
+                    )}
+
+                    {provider === 'deepseek' && (
+                      <div className="mt-2.5 p-3 bg-slate-950/40 border border-slate-800 rounded-2xl text-[11px] md:text-xs text-slate-400 leading-normal">
+                        Need a DeepSeek API Key? Get one from the{' '}
+                        <a 
+                          href="https://platform.deepseek.com/api_keys" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline inline-flex items-center gap-0.5 font-bold cursor-pointer"
+                        >
+                          DeepSeek Console <ExternalLink size={10} className="inline ml-0.5" />
+                        </a>.
+                      </div>
                     )}
                   </div>
-                </div>
 
-                {/* Instructions on how to get API Keys */}
-                {provider === 'gemini' && (
-                  <div className="mt-2.5 p-4 bg-primary/5 border border-primary/10 rounded-2xl space-y-2 text-[11px] md:text-xs text-slate-400 leading-relaxed">
-                    <div className="flex items-center gap-1.5 font-bold text-primary mb-1">
-                      <Sparkles size={13} className="text-primary animate-pulse" />
-                      Get a free Google Gemini API Key:
+                  {/* Custom Provider Fields */}
+                  {provider === 'custom' && (
+                    <div className="space-y-4 pt-1">
+                      <div className="space-y-2">
+                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
+                          Base URL
+                        </label>
+                        <input
+                          type="text"
+                          value={customUrl}
+                          onChange={(e) => setCustomUrl(e.target.value)}
+                          placeholder="https://api.deepseek.com/v1"
+                          className="w-full bg-slate-950/50 border border-primary/20 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-primary/50 text-slate-200 font-mono"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
+                          Model Name
+                        </label>
+                        <input
+                          type="text"
+                          value={customModel}
+                          onChange={(e) => setCustomModel(e.target.value)}
+                          placeholder="deepseek-chat"
+                          className="w-full bg-slate-950/50 border border-primary/20 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-primary/50 text-slate-200 font-mono"
+                        />
+                      </div>
                     </div>
-                    <ol className="list-decimal list-inside space-y-1.5 pl-0.5">
-                      <li>
-                        Go to{' '}
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'tutor' && (
+                <div className="space-y-5">
+                  <div className="p-3 bg-slate-950/30 border border-primary/10 rounded-2xl text-[11px] md:text-xs text-slate-400 leading-relaxed font-semibold">
+                    <span className="text-primary font-bold">Note:</span> If you leave the credentials below blank, the AI Tutor will automatically use your **Exam Generator API** configuration above.
+                  </div>
+
+                  {/* Provider Selection */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-wider">
+                      <Cpu size={14} className="text-primary" />
+                      AI Tutor Provider
+                    </label>
+                    <select
+                      value={chatProvider}
+                      onChange={(e) => setChatProvider(e.target.value as any)}
+                      className="w-full bg-slate-950/50 border border-primary/20 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-primary/50 text-slate-200 cursor-pointer"
+                    >
+                      <option value="gemini">Google Gemini</option>
+                      <option value="openai">OpenAI (ChatGPT)</option>
+                      <option value="deepseek">DeepSeek</option>
+                      <option value="custom">Custom (OpenAI-Compatible)</option>
+                    </select>
+                  </div>
+
+                  {/* API Key Input */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-wider">
+                      <Key size={14} className="text-primary" />
+                      {chatProvider === 'gemini' 
+                        ? 'Gemini API Key (Chat)' 
+                        : chatProvider === 'openai' 
+                          ? 'OpenAI API Key (Chat)' 
+                          : chatProvider === 'deepseek'
+                            ? 'DeepSeek API Key (Chat)'
+                            : 'API Key (Chat)'}
+                    </label>
+                    <div className="relative flex items-center">
+                      <input
+                        type={showChatKey ? 'text' : 'password'}
+                        value={chatApiKey}
+                        onChange={(e) => setChatApiKey(e.target.value)}
+                        placeholder="Leave blank to share Global API settings..."
+                        className="w-full bg-slate-950/50 border border-primary/20 rounded-xl py-3 pl-4 pr-20 text-sm focus:outline-none focus:border-primary/50 transition-colors font-mono text-primary"
+                      />
+                      <div className="absolute right-2 flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setShowChatKey(!showChatKey)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          {showChatKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                        {chatApiKey && (
+                          <button
+                            type="button"
+                            onClick={handleClearChatKey}
+                            className="p-1.5 rounded-lg text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+                            title="Clear saved key"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Onboarding Help links */}
+                    {chatProvider === 'gemini' && (
+                      <div className="mt-2.5 p-3.5 bg-primary/5 border border-primary/10 rounded-2xl text-[11px] md:text-xs text-slate-400 leading-normal font-semibold">
+                        Get your Gemini key from{' '}
                         <a 
                           href="https://aistudio.google.com/" 
                           target="_blank" 
@@ -201,162 +417,153 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           className="text-primary hover:underline inline-flex items-center gap-0.5 font-bold cursor-pointer"
                         >
                           Google AI Studio <ExternalLink size={10} className="inline ml-0.5" />
-                        </a>
-                      </li>
-                      <li>Sign in with your Google Account.</li>
-                      <li>Click the <strong className="text-slate-300">"Get API key"</strong> button in the left menu.</li>
-                      <li>Click <strong className="text-slate-300">"Create API key"</strong> and select a project.</li>
-                      <li>Copy the key (starts with <code className="text-primary bg-primary/10 px-1 py-0.5 rounded font-mono text-[10px]">AIzaSy...</code>) and paste it above!</li>
-                    </ol>
-                  </div>
-                )}
+                        </a>.
+                      </div>
+                    )}
 
-                {provider === 'openai' && (
-                  <div className="mt-2.5 p-3 bg-slate-950/40 border border-slate-800 rounded-2xl text-[11px] md:text-xs text-slate-400 leading-normal">
-                    Need an OpenAI API Key? Get one from the{' '}
-                    <a 
-                      href="https://platform.openai.com/api-keys" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline inline-flex items-center gap-0.5 font-bold cursor-pointer"
-                    >
-                      OpenAI Developer Dashboard <ExternalLink size={10} className="inline ml-0.5" />
-                    </a>.
-                  </div>
-                )}
+                    {chatProvider === 'openai' && (
+                      <div className="mt-2.5 p-3 bg-slate-950/40 border border-slate-800 rounded-2xl text-[11px] md:text-xs text-slate-400 leading-normal font-semibold">
+                        Need an OpenAI API Key? Get one from the{' '}
+                        <a 
+                          href="https://platform.openai.com/api-keys" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline inline-flex items-center gap-0.5 font-bold cursor-pointer"
+                        >
+                          OpenAI Platform Dashboard <ExternalLink size={10} className="inline ml-0.5" />
+                        </a>.
+                      </div>
+                    )}
 
-                {provider === 'deepseek' && (
-                  <div className="mt-2.5 p-3 bg-slate-950/40 border border-slate-800 rounded-2xl text-[11px] md:text-xs text-slate-400 leading-normal">
-                    Need a DeepSeek API Key? Get one from the{' '}
-                    <a 
-                      href="https://platform.deepseek.com/api_keys" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline inline-flex items-center gap-0.5 font-bold cursor-pointer"
-                    >
-                      DeepSeek Console <ExternalLink size={10} className="inline ml-0.5" />
-                    </a>.
+                    {chatProvider === 'deepseek' && (
+                      <div className="mt-2.5 p-3 bg-slate-950/40 border border-slate-800 rounded-2xl text-[11px] md:text-xs text-slate-400 leading-normal font-semibold">
+                        Need a DeepSeek API Key? Get one from the{' '}
+                        <a 
+                          href="https://platform.deepseek.com/api_keys" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline inline-flex items-center gap-0.5 font-bold cursor-pointer"
+                        >
+                          DeepSeek Console <ExternalLink size={10} className="inline ml-0.5" />
+                        </a>.
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* Custom Provider Fields */}
-              <AnimatePresence>
-                {provider === 'custom' && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-4 pt-1 overflow-hidden"
-                  >
-                    <div className="space-y-2">
-                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
-                        Base URL
-                      </label>
-                      <input
-                        type="text"
-                        value={customUrl}
-                        onChange={(e) => setCustomUrl(e.target.value)}
-                        placeholder="https://api.deepseek.com/v1"
-                        className="w-full bg-slate-950/50 border border-primary/20 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-primary/50 text-slate-200 font-mono"
-                      />
+                  {/* Custom Provider Fields */}
+                  {chatProvider === 'custom' && (
+                    <div className="space-y-4 pt-1">
+                      <div className="space-y-2">
+                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
+                          Base URL (Chat)
+                        </label>
+                        <input
+                          type="text"
+                          value={chatCustomUrl}
+                          onChange={(e) => setChatCustomUrl(e.target.value)}
+                          placeholder="https://api.openai.com/v1"
+                          className="w-full bg-slate-950/50 border border-primary/20 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-primary/50 text-slate-200 font-mono"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
+                          Model Name (Chat)
+                        </label>
+                        <input
+                          type="text"
+                          value={chatCustomModel}
+                          onChange={(e) => setChatCustomModel(e.target.value)}
+                          placeholder="gpt-4o-mini"
+                          className="w-full bg-slate-950/50 border border-primary/20 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-primary/50 text-slate-200 font-mono"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
-                        Model Name
-                      </label>
-                      <input
-                        type="text"
-                        value={customModel}
-                        onChange={(e) => setCustomModel(e.target.value)}
-                        placeholder="deepseek-chat"
-                        className="w-full bg-slate-950/50 border border-primary/20 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-primary/50 text-slate-200 font-mono"
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Preferences */}
-              <div className="space-y-4 pt-4 border-t border-slate-800">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Simulator Settings</h3>
-
-                {/* Active Theme Selector */}
-                <div className="flex items-center justify-between p-3 bg-slate-950/30 border border-slate-800/50 rounded-2xl">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-slate-800/50 rounded-lg text-primary mt-0.5">
-                      <Palette size={18} />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-200">Active Theme</div>
-                      <div className="text-xs text-slate-500 font-medium">Choose color accent.</div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    {THEMES.map(theme => (
-                      <button
-                        key={theme.id}
-                        onClick={() => setActiveTheme(theme.id)}
-                        type="button"
-                        title={theme.name}
-                        className={cn(
-                          "w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-125 cursor-pointer relative",
-                          theme.colorClass,
-                          activeTheme === theme.id ? "ring-2 ring-white ring-offset-2 ring-offset-slate-950 scale-110" : "opacity-50 hover:opacity-100"
-                        )}
-                      >
-                        {activeTheme === theme.id && (
-                          <span className="absolute w-1.5 h-1.5 bg-white rounded-full" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
+                  )}
                 </div>
-                
-                {/* Keyboard Shortcuts */}
-                <label className="flex items-center justify-between p-3 bg-slate-950/30 border border-slate-800/50 rounded-2xl cursor-pointer hover:border-slate-700/50 transition-colors">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-slate-800/50 rounded-lg text-primary mt-0.5">
-                      <Keyboard size={18} />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-200">Keyboard Shortcuts</div>
-                      <div className="text-xs text-slate-500">Use arrow keys, numbers, and Enter to navigate.</div>
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={shortcutsEnabled}
-                      onChange={(e) => setShortcutsEnabled(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary peer-checked:after:translate-x-5 peer-checked:after:bg-slate-950 transition-colors" />
-                  </div>
-                </label>
+              )}
 
-                {/* Sound Effects */}
-                <label className="flex items-center justify-between p-3 bg-slate-950/30 border border-slate-800/50 rounded-2xl cursor-pointer hover:border-slate-700/50 transition-colors">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-slate-800/50 rounded-lg text-primary mt-0.5">
-                      <Volume2 size={18} />
+              {activeTab === 'general' && (
+                <div className="space-y-4">
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Simulator Settings</h3>
+
+                  {/* Active Theme Selector */}
+                  <div className="flex items-center justify-between p-3 bg-slate-950/30 border border-slate-800/50 rounded-2xl">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-slate-800/50 rounded-lg text-primary mt-0.5">
+                        <Palette size={18} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-slate-200">Active Theme</div>
+                        <div className="text-xs text-slate-500 font-medium">Choose color accent.</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-200">Sound Effects</div>
-                      <div className="text-xs text-slate-500">Subtle audio feedback on score and interactions.</div>
+                    <div className="flex gap-2">
+                      {THEMES.map(theme => (
+                        <button
+                          key={theme.id}
+                          onClick={() => setActiveTheme(theme.id)}
+                          type="button"
+                          title={theme.name}
+                          className={cn(
+                            "w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-125 cursor-pointer relative",
+                            theme.colorClass,
+                            activeTheme === theme.id ? "ring-2 ring-white ring-offset-2 ring-offset-slate-950 scale-110" : "opacity-50 hover:opacity-100"
+                          )}
+                        >
+                          {activeTheme === theme.id && (
+                            <span className="absolute w-1.5 h-1.5 bg-white rounded-full" />
+                          )}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={soundEnabled}
-                      onChange={(e) => setSoundEnabled(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary peer-checked:after:translate-x-5 peer-checked:after:bg-slate-950 transition-colors" />
-                  </div>
-                </label>
-              </div>
+                  
+                  {/* Keyboard Shortcuts */}
+                  <label className="flex items-center justify-between p-3 bg-slate-950/30 border border-slate-800/50 rounded-2xl cursor-pointer hover:border-slate-700/50 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-slate-800/50 rounded-lg text-primary mt-0.5">
+                        <Keyboard size={18} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-slate-200">Keyboard Shortcuts</div>
+                        <div className="text-xs text-slate-500">Use arrow keys, numbers, and Enter to navigate.</div>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={shortcutsEnabled}
+                        onChange={(e) => setShortcutsEnabled(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary peer-checked:after:translate-x-5 peer-checked:after:bg-slate-950 transition-colors" />
+                    </div>
+                  </label>
+
+                  {/* Sound Effects */}
+                  <label className="flex items-center justify-between p-3 bg-slate-950/30 border border-slate-800/50 rounded-2xl cursor-pointer hover:border-slate-700/50 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-slate-800/50 rounded-lg text-primary mt-0.5">
+                        <Volume2 size={18} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-slate-200">Sound Effects</div>
+                        <div className="text-xs text-slate-500">Subtle audio feedback on score and interactions.</div>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={soundEnabled}
+                        onChange={(e) => setSoundEnabled(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary peer-checked:after:translate-x-5 peer-checked:after:bg-slate-950 transition-colors" />
+                    </div>
+                  </label>
+                </div>
+              )}
+
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-6 border-t border-slate-800">

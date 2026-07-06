@@ -11,6 +11,7 @@ import { parseQuestions } from './services/geminiService';
 import { Question, ExamState } from './types';
 import { Modal } from './components/Modal';
 import { SettingsModal } from './components/SettingsModal';
+import { AIChatDrawer } from './components/AIChatDrawer';
 import { playSound } from './lib/sound';
 import { cn } from './lib/utils';
 import { 
@@ -322,6 +323,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [hasApiKey, setHasApiKey] = useState(false);
   const [history, setHistory] = useState<ExamAttempt[]>([]);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1218,12 +1220,21 @@ Explanation: 5 + 3 is equal to 8."
                             : "bg-red-500/5 border-red-500/15"
                         )}
                       >
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center justify-between mb-2">
                           {state.userAnswers[currentQuestion.id] === currentQuestion.answer ? (
                             <span className="text-green-400 font-black uppercase tracking-wider text-[11px]">Correct Response</span>
                           ) : (
                             <span className="text-red-400 font-black uppercase tracking-wider text-[11px]">Incorrect Response</span>
                           )}
+                          <button
+                            onClick={() => {
+                              playSound('click');
+                              setIsChatOpen(true);
+                            }}
+                            className="text-[10px] font-black text-primary hover:text-primary-hover hover:scale-105 active:scale-95 transition-all flex items-center gap-1 cursor-pointer bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-lg"
+                          >
+                            <Sparkles size={10} fill="currentColor" /> DISCUSS WITH AI
+                          </button>
                         </div>
                         <div className="text-slate-400 text-xs leading-relaxed">
                           <KaTeXRenderer content={currentQuestion.explanation} />
@@ -1386,7 +1397,19 @@ Explanation: 5 + 3 is equal to 8."
                         </div>
 
                         <div className="bg-slate-950/20 p-5 rounded-2xl border border-primary/5">
-                          <div className="text-[10px] font-black text-primary/60 uppercase tracking-wider mb-1.5">Explanation</div>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="text-[10px] font-black text-primary/60 uppercase tracking-wider">Explanation</div>
+                            <button
+                              onClick={() => {
+                                playSound('click');
+                                setCurrentQuestionIndex(idx);
+                                setIsChatOpen(true);
+                              }}
+                              className="text-[10px] font-black text-primary hover:text-primary-hover hover:scale-105 active:scale-95 transition-all flex items-center gap-1 cursor-pointer bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-lg"
+                            >
+                              <Sparkles size={10} fill="currentColor" /> ASK AI TUTOR
+                            </button>
+                          </div>
                           <div className="text-slate-450 text-xs leading-relaxed">
                             <KaTeXRenderer content={q.explanation} />
                           </div>
@@ -1399,6 +1422,30 @@ Explanation: 5 + 3 is equal to 8."
             )}
           </AnimatePresence>
         </main>
+
+        {/* AI Chat Drawer */}
+        <AIChatDrawer
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          activeQuestion={state.questions[currentQuestionIndex]}
+          activeQuestionIndex={currentQuestionIndex}
+          userAnswer={state.userAnswers[state.questions[currentQuestionIndex]?.id]}
+          isAnswerChecked={state.checkedAnswers.has(state.questions[currentQuestionIndex]?.id)}
+        />
+
+        {/* Floating AI Assistant Button */}
+        {state.phase !== 'INPUT' && state.phase !== 'SETUP' && (
+          <button
+            onClick={() => {
+              playSound('click');
+              setIsChatOpen(true);
+            }}
+            className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-primary hover:bg-primary-hover text-slate-950 rounded-full flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-110 active:scale-95 transition-all cursor-pointer pulse-glow-effect border border-primary/20 animate-fade-in"
+            title="Open AI Chat Assistant"
+          >
+            <Sparkles size={24} fill="currentColor" />
+          </button>
+        )}
 
         {/* Universal Modals */}
         <Modal
