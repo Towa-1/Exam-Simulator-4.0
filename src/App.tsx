@@ -363,6 +363,32 @@ export default function App() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('emagyne_navigator_sidebar_width');
+    return saved ? parseInt(saved, 10) : 288;
+  });
+
+  const handleSidebarMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const newWidth = Math.max(200, Math.min(450, startWidth + delta));
+      setSidebarWidth(newWidth);
+      localStorage.setItem('emagyne_navigator_sidebar_width', newWidth.toString());
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
   // Check for API Key presence
   const checkApiKey = useCallback(() => {
     const localKey = localStorage.getItem('emagyne_api_key');
@@ -399,8 +425,10 @@ export default function App() {
 
   // Scroll to top on question change
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [currentQuestionIndex]);
+    if (state.phase === 'QUIZ' && !isChatOpen) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentQuestionIndex, isChatOpen, state.phase]);
 
   // Persistence
   useEffect(() => {
@@ -1056,10 +1084,24 @@ Explanation: 5 + 3 is equal to 8."
                 className="flex flex-col md:flex-row gap-6 md:gap-8 h-full items-start"
               >
                 {/* Navigator Sidebar (Desktop) */}
-                <aside className={cn(
-                  "hidden md:block glass-panel rounded-3xl h-fit sticky top-8 transition-all duration-300 shrink-0",
-                  isSidebarCollapsed ? "w-16 p-3" : "w-72 p-6"
-                )}>
+                <aside 
+                  className={cn(
+                    "hidden md:block glass-panel rounded-3xl h-fit sticky top-8 transition-all shrink-0 relative overflow-visible",
+                    isSidebarCollapsed ? "w-16 p-3" : "p-6"
+                  )}
+                  style={{ width: isSidebarCollapsed ? undefined : `${sidebarWidth}px` }}
+                >
+                  {/* Resize Drag Handle */}
+                  {!isSidebarCollapsed && (
+                    <div
+                      className="absolute top-0 -right-1 bottom-0 w-2 cursor-col-resize hover:bg-primary/20 active:bg-primary transition-all z-20 flex items-center justify-center group"
+                      onMouseDown={handleSidebarMouseDown}
+                      title="Drag to resize navigator"
+                    >
+                      <div className="w-[1px] h-8 bg-primary/20 group-hover:bg-primary/55 transition-colors" />
+                    </div>
+                  )}
+
                   <NavigatorContent 
                     state={state} 
                     currentQuestionIndex={currentQuestionIndex} 
@@ -1511,20 +1553,6 @@ Explanation: 5 + 3 is equal to 8."
             isInline={false}
           />
         </div>
-
-        {/* Floating AI Assistant Button (Relocated and Transparent) */}
-        {state.phase !== 'INPUT' && state.phase !== 'SETUP' && (
-          <button
-            onClick={() => {
-              playSound('click');
-              setIsChatOpen(prev => !prev);
-            }}
-            className="fixed bottom-6 left-6 z-40 w-14 h-14 bg-slate-950/40 backdrop-blur-md border border-primary/20 text-primary rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer opacity-60 hover:opacity-100 hover:border-primary/50 animate-fade-in"
-            title="Toggle AI Assistant"
-          >
-            <Sparkles size={24} fill="currentColor" />
-          </button>
-        )}
 
         {/* Universal Modals */}
         <Modal

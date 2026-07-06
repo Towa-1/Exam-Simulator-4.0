@@ -34,9 +34,36 @@ export function AIChatDrawer({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const [width, setWidth] = useState(() => {
+    const saved = localStorage.getItem('emagyne_chat_sidebar_width');
+    return saved ? parseInt(saved, 10) : 420;
+  });
+
+  const handleResizeMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = width;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = startX - moveEvent.clientX;
+      const newWidth = Math.max(300, Math.min(800, startWidth + delta));
+      setWidth(newWidth);
+      localStorage.setItem('emagyne_chat_sidebar_width', newWidth.toString());
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
   
   const provider = localStorage.getItem('emagyne_chat_provider') || localStorage.getItem('emagyne_api_provider') || 'gemini';
   const providerName = provider === 'gemini' ? 'Gemini' : provider === 'openai' ? 'OpenAI' : provider === 'deepseek' ? 'DeepSeek' : 'Custom AI';
+  const tutorTitle = provider === 'openai' ? 'ChatGPT Tutor' : provider === 'deepseek' ? 'DeepSeek Tutor' : 'Gemini Tutor';
 
   // Persistence
   useEffect(() => {
@@ -140,7 +167,7 @@ export function AIChatDrawer({
         <div className="flex items-center gap-2">
           <Sparkles className="text-primary animate-pulse" size={20} fill="currentColor" />
           <div>
-            <h2 className="text-sm font-black uppercase tracking-wider theme-gradient-text">Emagyne AI Tutor</h2>
+            <h2 className="text-sm font-black uppercase tracking-wider theme-gradient-text">{tutorTitle}</h2>
             <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Connected &bull; {providerName}</p>
           </div>
         </div>
@@ -202,22 +229,14 @@ export function AIChatDrawer({
               return (
                 <div
                   key={index}
-                  className={cn(
-                    "flex w-full flex-col space-y-1",
-                    isModel ? "items-start" : "items-end"
-                  )}
+                  className="w-full py-4 border-b border-primary/5 last:border-0 flex flex-col space-y-2 select-text text-left"
                 >
-                  <span className="text-[9px] font-black uppercase text-slate-600 tracking-wider px-1">
-                    {isModel ? providerName : "You"}
-                  </span>
-                  <div
-                    className={cn(
-                      "max-w-[85%] rounded-2xl p-3.5 text-xs md:text-sm font-medium leading-relaxed shadow-md border",
-                      isModel
-                        ? "bg-slate-900/80 border-primary/10 text-slate-100"
-                        : "bg-primary/10 border-primary/20 text-primary-hover"
-                    )}
-                  >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary/70">
+                      {isModel ? tutorTitle : "User Query"}
+                    </span>
+                  </div>
+                  <div className="text-slate-200 text-xs md:text-sm font-semibold w-full pr-1.5 break-words">
                     <KaTeXRenderer content={msg.content} />
                   </div>
                 </div>
@@ -225,11 +244,11 @@ export function AIChatDrawer({
             })}
 
             {isLoading && (
-              <div className="flex w-full flex-col space-y-1 items-start">
-                <span className="text-[9px] font-black uppercase text-slate-600 tracking-wider px-1">
-                  {providerName}
+              <div className="w-full py-4 border-b border-primary/5 last:border-0 flex flex-col space-y-2 text-left">
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary/70">
+                  {tutorTitle}
                 </span>
-                <div className="max-w-[85%] rounded-2xl p-3.5 bg-slate-900/80 border border-primary/10 shadow-md flex items-center gap-2">
+                <div className="flex items-center gap-2 pt-1">
                   <span className="flex gap-1">
                     <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></span>
                     <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></span>
@@ -304,8 +323,22 @@ export function AIChatDrawer({
 
   if (isInline) {
     return (
-      <div className="glass-panel w-full h-full flex flex-col z-10 border border-primary/20 shadow-2xl rounded-3xl relative overflow-hidden">
-        {renderInner()}
+      <div 
+        className="glass-panel h-full flex flex-col z-10 border border-primary/20 shadow-2xl rounded-3xl relative overflow-hidden transition-all duration-75"
+        style={{ width: `${width}px` }}
+      >
+        {/* Resize Drag Handle */}
+        <div
+          className="absolute top-0 left-0 bottom-0 w-2 cursor-col-resize hover:bg-primary/20 active:bg-primary transition-all z-20 flex items-center justify-center group"
+          onMouseDown={handleResizeMouseDown}
+          title="Drag to resize AI chat"
+        >
+          <div className="w-[1px] h-8 bg-primary/20 group-hover:bg-primary/55 transition-colors" />
+        </div>
+
+        <div className="pl-2 w-full h-full flex flex-col">
+          {renderInner()}
+        </div>
       </div>
     );
   }
