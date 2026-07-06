@@ -1,0 +1,1 @@
+{ "rewrites": [ { "source": "/openai-api/:path*", "destination": "https://api.openai.com/:path*" }, { "source": "/deepseek-api/:path*", "destination": "https://api.deepseek.com/:path*" } ] }

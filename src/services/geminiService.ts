@@ -206,10 +206,10 @@ export async function generateChatResponse(messages: ChatMessage[], systemInstru
     let model = "";
 
     if (provider === "openai") {
-      url = "https://api.openai.com/v1/chat/completions";
+      url = "/openai-api/v1/chat/completions";
       model = "gpt-4o-mini";
     } else if (provider === "deepseek") {
-      url = "https://api.deepseek.com/chat/completions";
+      url = "/deepseek-api/chat/completions";
       model = "deepseek-chat";
     } else {
       url = `${customUrl.replace(/\/$/, "")}/chat/completions`;
