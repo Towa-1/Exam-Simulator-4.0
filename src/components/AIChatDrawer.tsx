@@ -77,6 +77,18 @@ export function AIChatDrawer({
     }
   }, [messages, isOpen, isLoading]);
 
+  const chatAbortControllerRef = useRef<AbortController | null>(null);
+
+  const handleCancelChat = () => {
+    if (chatAbortControllerRef.current) {
+      chatAbortControllerRef.current.abort();
+      chatAbortControllerRef.current = null;
+    }
+    setIsLoading(false);
+    setError("AI response generation was cancelled.");
+    playSound('click');
+  };
+
   const handleSend = async (textToSend: string) => {
     if (!textToSend.trim() || isLoading) return;
 
@@ -88,6 +100,9 @@ export function AIChatDrawer({
     setIsLoading(true);
     playSound('click');
 
+    const controller = new AbortController();
+    chatAbortControllerRef.current = controller;
+
     try {
       const systemInstruction = 
         "You are Emagyne AI Assistant, a friendly and highly knowledgeable academic tutor. " +
@@ -96,10 +111,14 @@ export function AIChatDrawer({
         "Crucially: you MUST style all mathematical equations using LaTeX delimiters ($...$ for inline, $$...$$ for block math), " +
         "and wrap all code syntax, variables, outputs, and console commands in backticks (`code`) so they render nicely.";
 
-      const responseText = await generateChatResponse(updatedMessages, systemInstruction);
+      const responseText = await generateChatResponse(updatedMessages, systemInstruction, controller.signal);
       setMessages(prev => [...prev, { role: 'model', content: responseText }]);
       playSound('correct');
     } catch (e: any) {
+      if (e.name === 'AbortError' || controller.signal.aborted) {
+        setError("AI response generation was cancelled.");
+        return;
+      }
       console.error(e);
       playSound('incorrect');
       if (e.message === 'MISSING_API_KEY') {
@@ -109,6 +128,7 @@ export function AIChatDrawer({
       }
     } finally {
       setIsLoading(false);
+      chatAbortControllerRef.current = null;
     }
   };
 
@@ -245,9 +265,17 @@ export function AIChatDrawer({
 
             {isLoading && (
               <div className="w-full py-4 border-b border-primary/5 last:border-0 flex flex-col space-y-2 text-left">
-                <span className="text-[10px] font-black uppercase tracking-widest text-primary/70">
-                  {tutorTitle}
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/70">
+                    {tutorTitle}
+                  </span>
+                  <button
+                    onClick={handleCancelChat}
+                    className="px-2 py-0.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 rounded text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    <X size={10} /> Cancel
+                  </button>
+                </div>
                 <div className="flex items-center gap-2 pt-1">
                   <span className="flex gap-1">
                     <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></span>

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Eye, EyeOff, ShieldCheck, Key, Volume2, Keyboard, Trash2, Cpu, ExternalLink, Sparkles, Palette } from 'lucide-react';
+import { X, Eye, EyeOff, ShieldCheck, Key, Volume2, Keyboard, Trash2, Cpu, ExternalLink, Sparkles, Palette, Sun, FileCode } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-export type ThemeType = 'gold' | 'emerald' | 'sapphire' | 'ruby';
+export type ThemeType = 'violet' | 'gold' | 'emerald' | 'sapphire' | 'ruby';
 
 interface ThemeOption {
   id: ThemeType;
@@ -13,10 +13,11 @@ interface ThemeOption {
 }
 
 const THEMES: ThemeOption[] = [
-  { id: 'gold', name: 'Amber Gold', className: '', colorClass: 'bg-yellow-500' },
-  { id: 'emerald', name: 'Emerald Cyber', className: 'theme-emerald', colorClass: 'bg-emerald-500' },
-  { id: 'sapphire', name: 'Sapphire Deep', className: 'theme-sapphire', colorClass: 'bg-blue-500' },
-  { id: 'ruby', name: 'Ruby Crimson', className: 'theme-ruby', colorClass: 'bg-red-500' },
+  { id: 'violet', name: 'Neon Violet (Cyber)', className: '', colorClass: 'bg-purple-500' },
+  { id: 'gold', name: 'Amber Sunset', className: 'theme-gold', colorClass: 'bg-amber-500' },
+  { id: 'emerald', name: 'Emerald Matrix', className: 'theme-emerald', colorClass: 'bg-emerald-500' },
+  { id: 'sapphire', name: 'Sapphire Cosmic', className: 'theme-sapphire', colorClass: 'bg-blue-500' },
+  { id: 'ruby', name: 'Ruby Rose', className: 'theme-ruby', colorClass: 'bg-rose-500' },
 ];
 
 interface SettingsModalProps {
@@ -30,6 +31,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // Generator API settings
   const [provider, setProvider] = useState<'gemini' | 'openai' | 'deepseek' | 'openrouter' | 'custom'>('gemini');
   const [apiKey, setApiKey] = useState('');
+  const [geminiModel, setGeminiModel] = useState('gemini-2.0-flash');
   const [customUrl, setCustomUrl] = useState('');
   const [customModel, setCustomModel] = useState('');
   const [showKey, setShowKey] = useState(false);
@@ -43,13 +45,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [shortcutsEnabled, setShortcutsEnabled] = useState(true);
-  const [activeTheme, setActiveTheme] = useState<ThemeType>('gold');
+  const [activeTheme, setActiveTheme] = useState<ThemeType>('violet');
+  const [lightThemeEnabled, setLightThemeEnabled] = useState(false);
+  const [disableCodeHighlight, setDisableCodeHighlight] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setProvider((localStorage.getItem('emagyne_api_provider') as any) || 'gemini');
       setApiKey(localStorage.getItem('emagyne_api_key') || '');
+      setGeminiModel(localStorage.getItem('emagyne_gemini_model') || 'gemini-2.0-flash');
       setCustomUrl(localStorage.getItem('emagyne_custom_url') || '');
       setCustomModel(localStorage.getItem('emagyne_custom_model') || '');
 
@@ -60,7 +65,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
       setSoundEnabled(localStorage.getItem('emagyne_sound_enabled') !== 'false');
       setShortcutsEnabled(localStorage.getItem('emagyne_shortcuts_enabled') !== 'false');
-      setActiveTheme((localStorage.getItem('emagyne_theme') as ThemeType) || 'gold');
+      setActiveTheme((localStorage.getItem('emagyne_theme') as ThemeType) || 'violet');
+      setLightThemeEnabled(localStorage.getItem('emagyne_light_theme') === 'true');
+      setDisableCodeHighlight(localStorage.getItem('emagyne_disable_code_highlight') === 'true');
       setIsSaved(false);
       setActiveTab('generator');
     }
@@ -85,6 +92,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     e.preventDefault();
     localStorage.setItem('emagyne_api_provider', provider);
     localStorage.setItem('emagyne_api_key', apiKey.trim());
+    localStorage.setItem('emagyne_gemini_model', geminiModel);
     localStorage.setItem('emagyne_custom_url', customUrl.trim());
     localStorage.setItem('emagyne_custom_model', customModel.trim());
 
@@ -96,6 +104,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     localStorage.setItem('emagyne_sound_enabled', String(soundEnabled));
     localStorage.setItem('emagyne_shortcuts_enabled', String(shortcutsEnabled));
     localStorage.setItem('emagyne_theme', activeTheme);
+    localStorage.setItem('emagyne_light_theme', String(lightThemeEnabled));
+    localStorage.setItem('emagyne_disable_code_highlight', String(disableCodeHighlight));
     setIsSaved(true);
     setTimeout(() => {
       setIsSaved(false);
@@ -204,6 +214,26 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <option value="custom">Custom (OpenAI-Compatible)</option>
                     </select>
                   </div>
+
+                  {/* Gemini Model Dropdown */}
+                  {provider === 'gemini' && (
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-wider">
+                        <Sparkles size={14} className="text-primary" />
+                        Gemini Model
+                      </label>
+                      <select
+                        value={geminiModel}
+                        onChange={(e) => setGeminiModel(e.target.value)}
+                        className="w-full bg-slate-950/50 border border-primary/20 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-primary/50 text-slate-200 cursor-pointer"
+                      >
+                        <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recommended - Fast & Latest)</option>
+                        <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fast & Stable)</option>
+                        <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Reasoning & Complex Math)</option>
+                        <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Lightweight)</option>
+                      </select>
+                    </div>
+                  )}
 
                   {/* API Key Input */}
                   <div className="space-y-2">
@@ -602,6 +632,50 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         type="checkbox"
                         checked={soundEnabled}
                         onChange={(e) => setSoundEnabled(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary peer-checked:after:translate-x-5 peer-checked:after:bg-slate-950 transition-colors" />
+                    </div>
+                  </label>
+
+                  {/* Light Theme */}
+                  <label className="flex items-center justify-between p-3 bg-slate-950/30 border border-slate-800/50 rounded-2xl cursor-pointer hover:border-slate-700/50 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-slate-800/50 rounded-lg text-primary mt-0.5">
+                        <Sun size={18} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-slate-200">Light Theme</div>
+                        <div className="text-xs text-slate-500">Enable light color scheme.</div>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={lightThemeEnabled}
+                        onChange={(e) => setLightThemeEnabled(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary peer-checked:after:translate-x-5 peer-checked:after:bg-slate-950 transition-colors" />
+                    </div>
+                  </label>
+
+                  {/* Disable Code Highlight */}
+                  <label className="flex items-center justify-between p-3 bg-slate-950/30 border border-slate-800/50 rounded-2xl cursor-pointer hover:border-slate-700/50 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-slate-800/50 rounded-lg text-primary mt-0.5">
+                        <FileCode size={18} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-slate-200">Disable Code Highlighting</div>
+                        <div className="text-xs text-slate-500">Remove background from inline code snippets.</div>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={disableCodeHighlight}
+                        onChange={(e) => setDisableCodeHighlight(e.target.checked)}
                         className="sr-only peer"
                       />
                       <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary peer-checked:after:translate-x-5 peer-checked:after:bg-slate-950 transition-colors" />

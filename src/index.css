@@ -8,69 +8,82 @@
 }
 
 :root {
-  /* Amber Gold - Default Theme */
-  --theme-primary: 234, 179, 8; /* yellow-500 */
-  --theme-primary-hover: 202, 138, 4; /* yellow-600 */
-  --theme-glow: rgba(234, 179, 8, 0.15);
-  --theme-bg-gradient-color: rgba(234, 179, 8, 0.06);
+  /* Neon Violet Cyber - Default Theme */
+  --theme-primary: 168, 85, 247; /* purple-500 */
+  --theme-primary-hover: 147, 51, 234; /* purple-600 */
+  --theme-glow: rgba(168, 85, 247, 0.25);
+  --theme-bg-gradient-color: rgba(168, 85, 247, 0.08);
+  --theme-text-gradient-start: #f0abfc; /* fuchsia-300 */
+  --theme-text-gradient-middle: #c084fc; /* purple-400 */
+  --theme-text-gradient-end: #38bdf8; /* sky-400 */
+}
+
+.theme-gold {
+  /* Amber Sunset Gold */
+  --theme-primary: 245, 158, 11; /* amber-500 */
+  --theme-primary-hover: 217, 119, 6; /* amber-600 */
+  --theme-glow: rgba(245, 158, 11, 0.22);
+  --theme-bg-gradient-color: rgba(245, 158, 11, 0.08);
   --theme-text-gradient-start: #fef08a; /* yellow-200 */
-  --theme-text-gradient-middle: #eab308; /* yellow-500 */
-  --theme-text-gradient-end: #a16207; /* yellow-700 */
+  --theme-text-gradient-middle: #f59e0b; /* amber-500 */
+  --theme-text-gradient-end: #ea580c; /* orange-600 */
 }
 
 .theme-emerald {
-  /* Emerald Cyber */
+  /* Emerald Cyber Matrix */
   --theme-primary: 16, 185, 129; /* emerald-500 */
   --theme-primary-hover: 5, 150, 105; /* emerald-600 */
-  --theme-glow: rgba(16, 185, 129, 0.15);
-  --theme-bg-gradient-color: rgba(16, 185, 129, 0.06);
+  --theme-glow: rgba(16, 185, 129, 0.22);
+  --theme-bg-gradient-color: rgba(16, 185, 129, 0.08);
   --theme-text-gradient-start: #a7f3d0; /* emerald-200 */
   --theme-text-gradient-middle: #10b981; /* emerald-500 */
-  --theme-text-gradient-end: #047857; /* emerald-700 */
+  --theme-text-gradient-end: #06b6d4; /* cyan-500 */
 }
 
 .theme-sapphire {
-  /* Sapphire Deep */
+  /* Sapphire Deep Space */
   --theme-primary: 59, 130, 246; /* blue-500 */
   --theme-primary-hover: 37, 99, 235; /* blue-600 */
-  --theme-glow: rgba(59, 130, 246, 0.15);
-  --theme-bg-gradient-color: rgba(59, 130, 246, 0.06);
+  --theme-glow: rgba(59, 130, 246, 0.22);
+  --theme-bg-gradient-color: rgba(59, 130, 246, 0.08);
   --theme-text-gradient-start: #bfdbfe; /* blue-200 */
   --theme-text-gradient-middle: #3b82f6; /* blue-500 */
-  --theme-text-gradient-end: #1d4ed8; /* blue-700 */
+  --theme-text-gradient-end: #8b5cf6; /* violet-500 */
 }
 
 .theme-ruby {
-  /* Ruby Crimson */
-  --theme-primary: 239, 68, 68; /* red-500 */
-  --theme-primary-hover: 220, 38, 38; /* red-600 */
-  --theme-glow: rgba(239, 68, 68, 0.15);
-  --theme-bg-gradient-color: rgba(239, 68, 68, 0.06);
-  --theme-text-gradient-start: #fecaca; /* red-200 */
-  --theme-text-gradient-middle: #ef4444; /* red-500 */
-  --theme-text-gradient-end: #b91c1c; /* red-700 */
+  /* Ruby Crimson Rose */
+  --theme-primary: 244, 63, 94; /* rose-500 */
+  --theme-primary-hover: 225, 29, 72; /* rose-600 */
+  --theme-glow: rgba(244, 63, 94, 0.22);
+  --theme-bg-gradient-color: rgba(244, 63, 94, 0.08);
+  --theme-text-gradient-start: #fecdd3; /* rose-200 */
+  --theme-text-gradient-middle: #f43f5e; /* rose-500 */
+  --theme-text-gradient-end: #d946ef; /* fuchsia-500 */
 }
 
 @layer base {
   body {
     @apply bg-slate-950 text-slate-200 min-h-screen transition-all duration-500 ease-in-out selection:bg-primary/30 selection:text-white;
-    background-image: radial-gradient(circle at 50% 50%, var(--theme-bg-gradient-color) 0%, rgba(2, 6, 23, 1) 100%);
+    background-image: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, var(--theme-bg-gradient-color), transparent),
+      radial-gradient(circle at 50% 50%, var(--theme-bg-gradient-color) 0%, var(--color-slate-950) 100%);
   }
 }
 
 @layer components {
   .theme-gradient-text {
-    background-image: linear-gradient(to bottom, var(--theme-text-gradient-start), var(--theme-text-gradient-middle), var(--theme-text-gradient-end));
-    @apply bg-clip-text text-transparent font-black tracking-tighter;
+    background-image: linear-gradient(135deg, var(--theme-text-gradient-start), var(--theme-text-gradient-middle), var(--theme-text-gradient-end));
+    @apply bg-clip-text text-transparent font-black tracking-tight;
   }
 
   .glass-panel {
-    @apply bg-slate-900/60 backdrop-blur-2xl border border-primary/20 shadow-2xl transition-all duration-300;
-    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5), 0 0 50px -15px var(--theme-glow);
+    @apply bg-slate-900/70 backdrop-blur-2xl border border-primary/25 shadow-2xl transition-all duration-300;
+    box-shadow: 0 12px 48px -12px rgba(0, 0, 0, 0.7), 0 0 40px -10px var(--theme-glow);
   }
 
   .glass-panel-hover {
-    @apply hover:border-primary/40 hover:shadow-[0_10px_45px_-5px_rgba(0,0,0,0.6),_0_0_60px_-10px_var(--theme-glow)];
+    @apply hover:border-primary/50 hover:shadow-[0_16px_50px_-8px_rgba(0,0,0,0.8),_0_0_60px_-5px_var(--theme-glow)];
   }
 
   .custom-scrollbar::-webkit-scrollbar {
@@ -81,16 +94,16 @@
     @apply bg-slate-950/40 rounded-full;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-primary/25 rounded-full hover:bg-primary/50 transition-colors duration-200;
+    @apply bg-primary/30 rounded-full hover:bg-primary/60 transition-colors duration-200;
   }
   
   /* Additional animations */
   @keyframes pulse-glow {
     0%, 100% {
-      box-shadow: 0 0 15px -3px var(--theme-glow);
+      box-shadow: 0 0 15px -2px var(--theme-glow);
     }
     50% {
-      box-shadow: 0 0 25px 2px var(--theme-glow);
+      box-shadow: 0 0 30px 4px var(--theme-glow);
     }
   }
 
@@ -113,3 +126,25 @@
     animation: blink-red 1s infinite;
   }
 }
+
+.light-theme {
+  --color-slate-950: var(--color-slate-50);
+  --color-slate-900: var(--color-slate-100);
+  --color-slate-850: var(--color-slate-200);
+  --color-slate-800: var(--color-slate-300);
+  --color-slate-750: var(--color-slate-300);
+  --color-slate-700: var(--color-slate-400);
+  --color-slate-600: var(--color-slate-500);
+  --color-slate-500: var(--color-slate-600);
+  --color-slate-400: var(--color-slate-700);
+  --color-slate-350: var(--color-slate-700);
+  --color-slate-300: var(--color-slate-800);
+  --color-slate-200: var(--color-slate-900);
+}
+
+html.disable-code-highlight .react-markdown-container code {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  color: inherit !important;
+}
+

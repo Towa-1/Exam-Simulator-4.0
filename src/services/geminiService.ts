@@ -1,11 +1,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "../types";
 
+const sanitizeModel = (modelName: string | null): string => {
+  if (!modelName || modelName.includes("gemini-2.5-flash")) {
+    return "gemini-2.0-flash";
+  }
+  return modelName;
+};
+
 const getApiConfig = () => {
   const provider = localStorage.getItem("emagyne_api_provider") || "gemini";
   const key = localStorage.getItem("emagyne_api_key") || (process.env as any).GEMINI_API_KEY || "";
   const customUrl = localStorage.getItem("emagyne_custom_url") || "";
-  const customModel = localStorage.getItem("emagyne_custom_model") || "";
+  const rawModel = localStorage.getItem("emagyne_custom_model") || localStorage.getItem("emagyne_gemini_model") || "gemini-2.0-flash";
+  const customModel = sanitizeModel(rawModel);
 
   return { provider, key, customUrl, customModel };
 };
@@ -13,18 +21,23 @@ const getApiConfig = () => {
 const getChatApiConfig = () => {
   const provider = localStorage.getItem("emagyne_chat_provider") || localStorage.getItem("emagyne_api_provider") || "gemini";
   const key = localStorage.getItem("emagyne_chat_api_key") || localStorage.getItem("emagyne_api_key") || (process.env as any).GEMINI_API_KEY || "";
-  const customUrl = localStorage.getItem("emagyne_chat_custom_url") || localStorage.getItem("emagyne_chat_custom_url") || "";
-  const customModel = localStorage.getItem("emagyne_chat_custom_model") || localStorage.getItem("emagyne_chat_custom_model") || "";
+  const customUrl = localStorage.getItem("emagyne_chat_custom_url") || localStorage.getItem("emagyne_custom_url") || "";
+  const rawModel = localStorage.getItem("emagyne_chat_custom_model") || localStorage.getItem("emagyne_custom_model") || localStorage.getItem("emagyne_gemini_model") || "gemini-2.0-flash";
+  const customModel = sanitizeModel(rawModel);
 
   return { provider, key, customUrl, customModel };
 };
 
 
-export async function parseQuestions(rawText: string): Promise<Question[]> {
+export async function parseQuestions(rawText: string, signal?: AbortSignal): Promise<Question[]> {
   const { provider, key, customUrl, customModel } = getApiConfig();
 
   if (!key || key === "MY_GEMINI_API_KEY" || key.trim() === "") {
     throw new Error("MISSING_API_KEY");
+  }
+
+  if (signal?.aborted) {
+    throw new DOMException("Operation cancelled by user", "AbortError");
   }
 
   const prompt = `You are an expert exam parser. Your job is to convert raw, unstructured exam questions (e.g., copy-pasted text from documents, PDFs, exams, or books) into a structured JSON array matching the Question type definition:
@@ -60,7 +73,7 @@ ${rawText}`;
       model = "deepseek-chat";
     } else if (provider === "openrouter") {
       url = "https://openrouter.ai/api/v1/chat/completions";
-      model = customModel || "google/gemini-2.5-flash:free";
+      model = customModel || "google/gemini-2.0-flash-001";
     } else {
       url = `${customUrl.replace(/\/$/, "")}/chat/completions`;
       model = customModel || "gpt-4o-mini";
@@ -68,6 +81,7 @@ ${rawText}`;
 
     const response = await fetch(url, {
       method: "POST",
+      signal: signal,
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${key}`
@@ -150,45 +164,65 @@ ${rawText}`;
       throw new Error("The AI response was not in the correct format. Please try again.");
     }
   } else {
-    // Gemini
+    // Gemini with fallback logic and model resolution
     const ai = new GoogleGenAI({ apiKey: key });
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              id: { type: Type.STRING },
-              type: { type: Type.STRING, enum: ['MCQ', 'NUM'] },
-              question: { type: Type.STRING },
-              options: { type: Type.ARRAY, items: { type: Type.STRING } },
-              unit: { type: Type.STRING },
-              answer: { type: Type.STRING },
-              explanation: { type: Type.STRING },
-            },
-            required: ['id', 'type', 'question', 'answer', 'explanation'],
-          },
-        },
-      },
-    });
+    
+    // Model preference list: custom/selected model, then standard gemini-2.0-flash, gemini-1.5-flash, gemini-1.5-pro
+    const primaryModel = sanitizeModel(customModel) || "gemini-2.0-flash";
+    const candidateModels = Array.from(new Set([
+      primaryModel,
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+      "gemini-1.5-pro"
+    ])).filter(m => m && !m.includes("gemini-2.5-flash"));
 
-    try {
-      const text = response.text;
-      if (!text) throw new Error("Empty response from AI");
-      
-      const parsed = JSON.parse(text);
-      return parsed.map((q: any, idx: number) => ({
-        ...q,
-        id: q.id || `q-${Date.now()}-${idx}`
-      }));
-    } catch (e) {
-      console.error("Failed to parse Gemini response", e);
-      throw new Error("The AI response was not in the correct format. Please try again.");
+    let lastError: any = null;
+
+    for (const modelName of candidateModels) {
+      if (signal?.aborted) {
+        throw new DOMException("Operation cancelled by user", "AbortError");
+      }
+      try {
+        const response = await ai.models.generateContent({
+          model: modelName,
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  type: { type: Type.STRING, enum: ['MCQ', 'NUM'] },
+                  question: { type: Type.STRING },
+                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  unit: { type: Type.STRING },
+                  answer: { type: Type.STRING },
+                  explanation: { type: Type.STRING },
+                },
+                required: ['id', 'type', 'question', 'answer', 'explanation'],
+              },
+            },
+          },
+        });
+
+        const text = response.text;
+        if (!text) throw new Error("Empty response from AI");
+        
+        const parsed = JSON.parse(text);
+        return parsed.map((q: any, idx: number) => ({
+          ...q,
+          id: q.id || `q-${Date.now()}-${idx}`
+        }));
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`Gemini model ${modelName} failed, attempting next fallback...`, err?.message || err);
+      }
     }
+
+    console.error("All Gemini model fallbacks failed", lastError);
+    throw new Error(lastError?.message || "Failed to process request with Gemini AI. Please check your API key or network.");
   }
 }
 
@@ -197,11 +231,19 @@ export interface ChatMessage {
   content: string;
 }
 
-export async function generateChatResponse(messages: ChatMessage[], systemInstruction?: string): Promise<string> {
+export async function generateChatResponse(
+  messages: ChatMessage[], 
+  systemInstruction?: string,
+  signal?: AbortSignal
+): Promise<string> {
   const { provider, key, customUrl, customModel } = getChatApiConfig();
 
   if (!key || key === "MY_GEMINI_API_KEY" || key.trim() === "") {
     throw new Error("MISSING_API_KEY");
+  }
+
+  if (signal?.aborted) {
+    throw new DOMException("Operation cancelled by user", "AbortError");
   }
 
   if (provider === "openai" || provider === "deepseek" || provider === "openrouter" || provider === "custom") {
@@ -216,7 +258,7 @@ export async function generateChatResponse(messages: ChatMessage[], systemInstru
       model = "deepseek-chat";
     } else if (provider === "openrouter") {
       url = "https://openrouter.ai/api/v1/chat/completions";
-      model = customModel || "google/gemini-2.5-flash:free";
+      model = customModel || "google/gemini-2.0-flash-001";
     } else {
       url = `${customUrl.replace(/\/$/, "")}/chat/completions`;
       model = customModel || "gpt-4o-mini";
@@ -235,6 +277,7 @@ export async function generateChatResponse(messages: ChatMessage[], systemInstru
 
     const response = await fetch(url, {
       method: "POST",
+      signal: signal,
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${key}`
@@ -256,24 +299,47 @@ export async function generateChatResponse(messages: ChatMessage[], systemInstru
     if (!content) throw new Error("Empty response from AI provider");
     return content;
   } else {
-    // Gemini
+    // Gemini with fallback
     const ai = new GoogleGenAI({ apiKey: key });
     const contents = messages.map(msg => ({
       role: msg.role,
       parts: [{ text: msg.content }]
     }));
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: contents,
-      config: systemInstruction ? {
-        systemInstruction: systemInstruction
-      } : undefined
-    });
+    const primaryModel = sanitizeModel(customModel) || "gemini-2.0-flash";
+    const candidateModels = Array.from(new Set([
+      primaryModel,
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+      "gemini-1.5-pro"
+    ])).filter(m => m && !m.includes("gemini-2.5-flash"));
 
-    const text = response.text;
-    if (!text) throw new Error("Empty response from AI");
-    return text;
+    let lastError: any = null;
+
+    for (const modelName of candidateModels) {
+      if (signal?.aborted) {
+        throw new DOMException("Operation cancelled by user", "AbortError");
+      }
+      try {
+        const response = await ai.models.generateContent({
+          model: modelName,
+          contents: contents,
+          config: systemInstruction ? {
+            systemInstruction: systemInstruction
+          } : undefined
+        });
+
+        const text = response.text;
+        if (!text) throw new Error("Empty response from AI");
+        return text;
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`Gemini chat model ${modelName} failed, attempting fallback...`, err?.message || err);
+      }
+    }
+
+    throw new Error(lastError?.message || "Failed to generate AI response.");
   }
 }
+
 

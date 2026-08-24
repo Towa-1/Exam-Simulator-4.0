@@ -8,59 +8,108 @@ interface Props {
   block?: boolean;
 }
 
-function MathText({ children }: { children: string }) {
-  // Normalize LaTeX delimiters commonly returned by LLMs
-  let normalized = children;
-  normalized = normalized.replace(/\\\[([\s\S]+?)\\\]/g, '$$$$$1$$$$');
-  normalized = normalized.replace(/\\\(([\s\S]+?)\\\)/g, '$$$1$$');
+function cleanLatex(rawMath: string): string {
+  if (!rawMath) return '';
+  let cleaned = rawMath.trim();
+  // Unescape double backslashes if LLM returned JSON-escaped slashes
+  cleaned = cleaned.replace(/\\\\/g, '\\');
+  return cleaned;
+}
 
-  // Simple regex to find LaTeX between $...$ or $$...$$
-  const parts = normalized.split(/(\$\$[\s\S]+?\$\$|\$[\s\S]+?\$)/g);
-
+function SafeInlineMath({ math }: { math: string }) {
+  const cleaned = cleanLatex(math);
+  if (!cleaned) return null;
   return (
-    <>
-      {parts.map((part, i) => {
-        if (part.startsWith('$$') && part.endsWith('$$')) {
-          return <BlockMath key={i} math={part.slice(2, -2)} />;
-        }
-        if (part.startsWith('$') && part.endsWith('$')) {
-          return <InlineMath key={i} math={part.slice(1, -1)} />;
-        }
-        return <span key={i}>{part}</span>;
-      })}
-    </>
+    <span className="inline-flex items-center justify-center mx-0.5 my-0.5 px-0.5 py-0.5 bg-slate-900/40 rounded text-slate-100 font-normal">
+      <InlineMath
+        math={cleaned}
+        renderError={() => (
+          <code className="text-amber-300 font-mono text-xs px-1 py-0.5 bg-amber-950/40 rounded border border-amber-500/20">
+            ${cleaned}$
+          </code>
+        )}
+      />
+    </span>
+  );
+}
+
+function SafeBlockMath({ math }: { math: string }) {
+  const cleaned = cleanLatex(math);
+  if (!cleaned) return null;
+  return (
+    <div className="my-3 py-2 px-3 bg-slate-950/60 rounded-xl border border-primary/20 overflow-x-auto custom-scrollbar flex items-center justify-center">
+      <BlockMath
+        math={cleaned}
+        renderError={() => (
+          <code className="text-amber-300 font-mono text-xs p-2 bg-amber-950/40 rounded block border border-amber-500/20">
+            $${cleaned}$$
+          </code>
+        )}
+      />
+    </div>
+  );
+}
+
+function FormattedSegment({ text }: { text: string }) {
+  if (!text) return null;
+  return (
+    <ReactMarkdown
+      components={{
+        h1: ({ children }) => <h1 className="text-sm font-black text-primary mt-4 mb-2 uppercase tracking-wide">{children}</h1>,
+        h2: ({ children }) => <h2 className="text-xs font-black text-primary mt-3 mb-1.5 uppercase tracking-wider">{children}</h2>,
+        h3: ({ children }) => <h3 className="text-xs font-black text-slate-200 mt-2.5 mb-1 uppercase tracking-widest">{children}</h3>,
+        h4: ({ children }) => <h4 className="text-[10px] font-black text-slate-350 mt-2 mb-1 uppercase tracking-widest">{children}</h4>,
+        p: ({ children }) => <span className="leading-relaxed text-slate-200 font-medium text-xs md:text-sm">{children}</span>,
+        ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-1 text-slate-300">{children}</ul>,
+        ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-1 text-slate-300">{children}</ol>,
+        li: ({ children }) => <li className="text-xs md:text-sm font-semibold leading-relaxed mb-1 last:mb-0">{children}</li>,
+        strong: ({ children }) => <strong className="font-extrabold text-primary">{children}</strong>,
+        em: ({ children }) => <em className="italic text-slate-200">{children}</em>,
+        code: ({ children }) => (
+          <code className="bg-slate-950/90 px-2 py-0.5 rounded-md text-xs font-mono text-primary-hover border border-primary/20 select-all font-semibold inline-block mx-0.5 shadow-sm">
+            {children}
+          </code>
+        )
+      }}
+    >
+      {text}
+    </ReactMarkdown>
   );
 }
 
 export function KaTeXRenderer({ content, block = false }: Props) {
+  if (!content) return null;
+
   if (block) {
-    return <BlockMath math={content} />;
+    return <SafeBlockMath math={content} />;
   }
 
+  // Normalize delimiters returned by LLMs
+  let normalized = content;
+  normalized = normalized.replace(/\\\[([\s\S]+?)\\\]/g, '$$$$$1$$$$');
+  normalized = normalized.replace(/\\\(([\s\S]+?)\\\)/g, '$$$1$$');
+
+  // Split content into Math blocks, Math inline, and text segments
+  const parts = normalized.split(/(\$\$[\s\S]+?\$\$|\$[\s\S]+?\$)/g);
+
   return (
-    <div className="react-markdown-container w-full break-words select-text">
-      <ReactMarkdown
-        components={{
-          text: (props: any) => <MathText>{props.children || props.value || ''}</MathText>,
-          h1: ({ children }) => <h1 className="text-sm font-black text-primary mt-4 mb-2 uppercase tracking-wide">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-xs font-black text-primary mt-3 mb-1.5 uppercase tracking-wider">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-xs font-black text-slate-200 mt-2.5 mb-1 uppercase tracking-widest">{children}</h3>,
-          h4: ({ children }) => <h4 className="text-[10px] font-black text-slate-350 mt-2 mb-1 uppercase tracking-widest">{children}</h4>,
-          p: ({ children }) => <p className="mb-2 leading-relaxed last:mb-0 text-slate-350 font-semibold text-xs md:text-sm">{children}</p>,
-          ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-1 text-slate-400">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-1 text-slate-400">{children}</ol>,
-          li: ({ children }) => <li className="text-xs md:text-sm font-semibold leading-relaxed mb-1 last:mb-0">{children}</li>,
-          strong: ({ children }) => <strong className="font-extrabold text-primary">{children}</strong>,
-          em: ({ children }) => <em className="italic text-slate-200">{children}</em>,
-          code: ({ children }) => (
-            <code className="bg-slate-950/80 px-1.5 py-0.5 rounded text-xs font-mono text-primary-hover border border-primary/10 select-all font-semibold inline-block">
-              {children}
-            </code>
-          )
-        }}
-      >
-        {content}
-      </ReactMarkdown>
+    <div className="react-markdown-container w-full break-words select-text leading-relaxed">
+      {parts.map((part, i) => {
+        if (!part) return null;
+
+        if (part.startsWith('$$') && part.endsWith('$$') && part.length > 4) {
+          const innerMath = part.slice(2, -2);
+          return <SafeBlockMath key={i} math={innerMath} />;
+        }
+
+        if (part.startsWith('$') && part.endsWith('$') && part.length > 2) {
+          const innerMath = part.slice(1, -1);
+          return <SafeInlineMath key={i} math={innerMath} />;
+        }
+
+        return <FormattedSegment key={i} text={part} />;
+      })}
     </div>
   );
 }
+
