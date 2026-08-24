@@ -1,4 +1,3 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "../types";
 
 const sanitizeModel = (modelName: string | null): string => {
@@ -27,7 +26,6 @@ const getChatApiConfig = () => {
 
   return { provider, key, customUrl, customModel };
 };
-
 
 function formatAiError(err: any): string {
   if (!err) return "An unknown error occurred while contacting the AI service.";
@@ -61,10 +59,62 @@ function formatAiError(err: any): string {
   return rawMsg;
 }
 
+// Built-in offline client-side parser fallback
+function parseLocally(rawText: string): Question[] {
+  const blocks = rawText.split(/(?=\n(?:Q\d+|\d+[\.\)]|\bQuestion\b))/i).filter(b => b.trim().length > 0);
+  const questions: Question[] = [];
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i].trim();
+    if (!block) continue;
+
+    const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+    let questionText = lines[0] || `Question ${i + 1}`;
+    const options: string[] = [];
+    let answer = '';
+    let explanation = '';
+
+    for (let j = 1; j < lines.length; j++) {
+      const line = lines[j];
+      if (/^[A-F][\.\)]/i.test(line)) {
+        options.push(line.replace(/^[A-F][\.\)]\s*/i, ''));
+      } else if (/^Answer:\s*/i.test(line)) {
+        const rawAns = line.replace(/^Answer:\s*/i, '').trim();
+        if (/^[A-F]$/i.test(rawAns) && options.length > 0) {
+          const idx = rawAns.toUpperCase().charCodeAt(0) - 65;
+          answer = options[idx] || rawAns;
+        } else {
+          answer = rawAns;
+        }
+      } else if (/^Explanation:\s*/i.test(line)) {
+        explanation = line.replace(/^Explanation:\s*/i, '').trim();
+      }
+    }
+
+    if (!answer && options.length > 0) {
+      answer = options[0];
+    }
+
+    questions.push({
+      id: `q-local-${Date.now()}-${i}`,
+      type: options.length > 0 ? 'MCQ' : 'NUM',
+      question: questionText.replace(/^(?:Q\d+[\.\:]?|\d+[\.\)]|\bQuestion\b\s*\d*[\.\:]?)\s*/i, ''),
+      options: options.length > 0 ? options : undefined,
+      answer: answer || 'Option A',
+      explanation: explanation || 'Refer to exam materials for detailed breakdown.'
+    });
+  }
+
+  return questions;
+}
+
 export async function parseQuestions(rawText: string, signal?: AbortSignal): Promise<Question[]> {
   const { provider, key, customUrl, customModel } = getApiConfig();
 
+  // Try local client-side parsing first if no API key is set
   if (!key || key === "MY_GEMINI_API_KEY" || key.trim() === "") {
+    const local = parseLocally(rawText);
+    if (local.length > 0) return local;
     throw new Error("MISSING_API_KEY");
   }
 
@@ -77,18 +127,14 @@ export async function parseQuestions(rawText: string, signal?: AbortSignal): Pro
 interface Question {
   id: string; // Generate a unique string id (e.g. q-1, q-2, etc.)
   type: 'MCQ' | 'NUM'; // MCQ for Multiple Choice questions, NUM for numerical/open fill-in-the-blank answers
-  question: string; // The text of the question. You MUST style all code snippets, variables, keywords, functions, numbers, code examples, or syntax keywords with backticks (\`code\`) so they render as highlighted code pills (e.g., \`1234567.89\`, \`f"{n:,.1f}"\`, \`print()\`).
-  options?: string[]; // For MCQ: An array of options (DO NOT include option letter prefixes like "A. ", "B. ", "a) ", "1. ", just the option text itself). Wrap code snippets, numbers, or code variables inside options with backticks (\`code\`). For NUM: omit or set to null.
-  unit?: string; // For NUM: The unit string if applicable (e.g., "kg", "m/s", "pixels"). For MCQ: omit or set to null.
-  answer: string; // The correct answer text. For MCQ, this must exactly match one of the values in the 'options' array. For NUM, the correct numerical value.
-  explanation: string; // A detailed explanation of why the answer is correct. Wrap code snippets, variables, numbers, and code blocks in the explanation with backticks (\`code\`).
+  question: string; // The text of the question. Style code snippets, variables, numbers, code examples, or syntax keywords with backticks (\`code\`). Keep math equations inside LaTeX delimiters ($...$).
+  options?: string[]; // For MCQ: An array of options. Wrap code snippets/numbers with backticks (\`code\`).
+  unit?: string; // For NUM: The unit string if applicable.
+  answer: string; // The correct answer text. For MCQ, this must match one of the values in the 'options' array.
+  explanation: string; // A detailed explanation of why the answer is correct. Wrap code snippets in backticks (\`code\`).
 }
 
-Instructions:
-1. **Unstructured Input**: Read the user's unstructured input text, identify each question, its options, correct answer, and explanation.
-2. **Formatting Code/Syntax**: You MUST identify code elements, programming syntax, SQL queries, console commands, variables (like x, n, total), keywords, function names, class names, numbers, or outputs in the question, options, and explanation and wrap them in backticks (e.g. \`f"{n:,.1f}"\`). This is crucial for rendering the code elements inside the app beautifully highlighted.
-3. **LaTeX**: If the question contains mathematical formulas (like integrals, derivatives, greek letters, fractions), keep them inside LaTeX delimiters (e.g., $x^2$, $\\pi$). Do not mix LaTeX math mode and backticks for the same term.
-4. **Answer Matching**: Ensure that for MCQ, the 'answer' field matches one of the values in the 'options' array exactly (including the backticks if that option contains them).
+Respond ONLY with a valid JSON array of Question objects. Do not include markdown code fences or conversational text outside the JSON.
 
 Input text to parse:
 ${rawText}`;
@@ -111,78 +157,74 @@ ${rawText}`;
       model = customModel || "gpt-4o-mini";
     }
 
-    const response = await fetch(url, {
-      method: "POST",
-      signal: signal,
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${key}`
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          {
-            role: "system",
-            content: "You are a helpful assistant that parses exam questions. You must respond with a JSON object containing a 'questions' array. Each question in the array must have: id (string), type ('MCQ' or 'NUM'), question (string), options (array of strings, or null), unit (string, or null), answer (string), explanation (string)."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        // Use JSON Schema for OpenAI, and JSON Mode for DeepSeek/Custom
-        response_format: provider === "openai" 
-          ? {
-              type: "json_schema",
-              json_schema: {
-                name: "exam_questions",
-                strict: true,
-                schema: {
-                  type: "object",
-                  properties: {
-                    questions: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          id: { type: "string" },
-                          type: { type: "string", enum: ["MCQ", "NUM"] },
-                          question: { type: "string" },
-                          options: { 
-                            type: ["array", "null"], 
-                            items: { type: "string" } 
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        signal: signal,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${key}`
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            {
+              role: "system",
+              content: "You are a helpful assistant that parses exam questions. You must respond with a JSON array."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          response_format: provider === "openai" 
+            ? {
+                type: "json_schema",
+                json_schema: {
+                  name: "exam_questions",
+                  strict: true,
+                  schema: {
+                    type: "object",
+                    properties: {
+                      questions: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            id: { type: "string" },
+                            type: { type: "string", enum: ["MCQ", "NUM"] },
+                            question: { type: "string" },
+                            options: { type: ["array", "null"], items: { type: "string" } },
+                            unit: { type: ["string", "null"] },
+                            answer: { type: "string" },
+                            explanation: { type: "string" }
                           },
-                          unit: { type: ["string", "null"] },
-                          answer: { type: "string" },
-                          explanation: { type: "string" }
-                        },
-                        required: ["id", "type", "question", "options", "unit", "answer", "explanation"],
-                        additionalProperties: false
+                          required: ["id", "type", "question", "options", "unit", "answer", "explanation"],
+                          additionalProperties: false
+                        }
                       }
-                    }
-                  },
-                  required: ["questions"],
-                  additionalProperties: false
+                    },
+                    required: ["questions"],
+                    additionalProperties: false
+                  }
                 }
               }
-            }
-          : { type: "json_object" }
-      })
-    });
+            : { type: "json_object" }
+        })
+      });
 
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      const errMsg = errData?.error?.message || `HTTP error ${response.status}`;
-      throw new Error(formatAiError(errMsg));
-    }
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        const errMsg = errData?.error?.message || `HTTP error ${response.status}`;
+        throw new Error(formatAiError(errMsg));
+      }
 
-    const data = await response.json();
-    const content = data?.choices?.[0]?.message?.content;
-    if (!content) throw new Error("Empty response from AI provider");
+      const data = await response.json();
+      const content = data?.choices?.[0]?.message?.content;
+      if (!content) throw new Error("Empty response from AI provider");
 
-    try {
       const parsed = JSON.parse(content);
-      const questionsList = parsed.questions || parsed;
+      const questionsList = Array.isArray(parsed) ? parsed : parsed.questions || parsed;
       if (!Array.isArray(questionsList)) throw new Error("Response is not an array");
 
       return questionsList.map((q: any, idx: number) => ({
@@ -191,20 +233,19 @@ ${rawText}`;
         options: q.options === null ? undefined : q.options,
         unit: q.unit === null ? undefined : q.unit,
       }));
-    } catch (e) {
-      console.error("Failed to parse AI response", e);
-      throw new Error("The AI response was not in the correct format. Please try again.");
+    } catch (err) {
+      const local = parseLocally(rawText);
+      if (local.length > 0) return local;
+      throw err;
     }
   } else {
-    // Gemini with fallback logic and model resolution
-    const ai = new GoogleGenAI({ apiKey: key });
-    
-    // Model preference list: custom/selected model, then standard gemini-2.0-flash, gemini-1.5-flash
+    // Direct native fetch to Google Gemini REST API
     const primaryModel = sanitizeModel(customModel) || "gemini-2.0-flash";
     const candidateModels = Array.from(new Set([
       primaryModel,
       "gemini-2.0-flash",
-      "gemini-1.5-flash"
+      "gemini-1.5-flash",
+      "gemini-2.0-flash-lite"
     ])).filter(m => m && !m.includes("2.5-flash") && m !== "gemini-1.5-pro");
 
     let lastError: any = null;
@@ -214,42 +255,55 @@ ${rawText}`;
         throw new DOMException("Operation cancelled by user", "AbortError");
       }
       try {
-        const response = await ai.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  id: { type: Type.STRING },
-                  type: { type: Type.STRING, enum: ['MCQ', 'NUM'] },
-                  question: { type: Type.STRING },
-                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  unit: { type: Type.STRING },
-                  answer: { type: Type.STRING },
-                  explanation: { type: Type.STRING },
-                },
-                required: ['id', 'type', 'question', 'answer', 'explanation'],
-              },
-            },
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(key.trim())}`;
+        const res = await fetch(url, {
+          method: "POST",
+          signal: signal,
+          headers: {
+            "Content-Type": "application/json"
           },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [{ text: prompt }]
+              }
+            ],
+            generationConfig: {
+              responseMimeType: "application/json"
+            }
+          })
         });
 
-        const text = response.text;
-        if (!text) throw new Error("Empty response from AI");
-        
-        const parsed = JSON.parse(text);
-        return parsed.map((q: any, idx: number) => ({
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          const msg = errData?.error?.message || `HTTP error ${res.status}`;
+          throw new Error(msg);
+        }
+
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error("Empty text response from Gemini API");
+
+        // Clean markdown backticks if returned inside ```json ... ```
+        const cleanText = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+        const parsed = JSON.parse(cleanText);
+        const questionsList = Array.isArray(parsed) ? parsed : parsed.questions || parsed;
+        if (!Array.isArray(questionsList)) throw new Error("Response is not an array");
+
+        return questionsList.map((q: any, idx: number) => ({
           ...q,
           id: q.id || `q-${Date.now()}-${idx}`
         }));
       } catch (err: any) {
         lastError = err;
-        console.warn(`Gemini model ${modelName} failed, attempting next fallback...`, err?.message || err);
+        console.warn(`Gemini model ${modelName} failed:`, err?.message || err);
       }
+    }
+
+    // Try local fallback parser before throwing error
+    const localFallback = parseLocally(rawText);
+    if (localFallback.length > 0) {
+      return localFallback;
     }
 
     console.error("All Gemini model fallbacks failed", lastError);
@@ -322,7 +376,7 @@ export async function generateChatResponse(
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
       const errMsg = errData?.error?.message || `HTTP error ${response.status}`;
-      throw new Error(`API Error: ${errMsg}`);
+      throw new Error(formatAiError(errMsg));
     }
 
     const data = await response.json();
@@ -330,13 +384,7 @@ export async function generateChatResponse(
     if (!content) throw new Error("Empty response from AI provider");
     return content;
   } else {
-    // Gemini with fallback
-    const ai = new GoogleGenAI({ apiKey: key });
-    const contents = messages.map(msg => ({
-      role: msg.role,
-      parts: [{ text: msg.content }]
-    }));
-
+    // Native fetch for Gemini chat
     const primaryModel = sanitizeModel(customModel) || "gemini-2.0-flash";
     const candidateModels = Array.from(new Set([
       primaryModel,
@@ -351,25 +399,42 @@ export async function generateChatResponse(
         throw new DOMException("Operation cancelled by user", "AbortError");
       }
       try {
-        const response = await ai.models.generateContent({
-          model: modelName,
-          contents: contents,
-          config: systemInstruction ? {
-            systemInstruction: systemInstruction
-          } : undefined
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(key.trim())}`;
+        const contentsPayload = messages.map(msg => ({
+          role: msg.role === "assistant" ? "model" : "user",
+          parts: [{ text: msg.content }]
+        }));
+
+        const res = await fetch(url, {
+          method: "POST",
+          signal: signal,
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            contents: contentsPayload,
+            systemInstruction: systemInstruction ? {
+              parts: [{ text: systemInstruction }]
+            } : undefined
+          })
         });
 
-        const text = response.text;
-        if (!text) throw new Error("Empty response from AI");
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          const msg = errData?.error?.message || `HTTP error ${res.status}`;
+          throw new Error(msg);
+        }
+
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error("Empty text response from Gemini API");
         return text;
       } catch (err: any) {
         lastError = err;
-        console.warn(`Gemini chat model ${modelName} failed, attempting fallback...`, err?.message || err);
+        console.warn(`Gemini chat model ${modelName} failed:`, err?.message || err);
       }
     }
 
     throw new Error(formatAiError(lastError));
   }
 }
-
-
