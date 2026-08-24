@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Eye, EyeOff, ShieldCheck, Key, Volume2, Keyboard, Trash2, Cpu, ExternalLink, Sparkles, Palette, Sun, FileCode } from 'lucide-react';
+import { X, Eye, EyeOff, ShieldCheck, Key, Volume2, Keyboard, Trash2, Cpu, ExternalLink, Sparkles, Palette, Sun, FileCode, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export type ThemeType = 'violet' | 'gold' | 'emerald' | 'sapphire' | 'ruby';
@@ -269,22 +269,28 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         <button
                           type="button"
                           onClick={() => setShowKey(!showKey)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                          className="p-2 text-slate-400 hover:text-slate-200 transition-colors"
                         >
                           {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                         {apiKey && (
                           <button
                             type="button"
-                            onClick={handleClearKey}
-                            className="p-1.5 rounded-lg text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
-                            title="Clear saved key"
+                            onClick={() => setApiKey('')}
+                            className="p-2 text-slate-400 hover:text-red-400 transition-colors"
                           >
                             <Trash2 size={16} />
                           </button>
                         )}
                       </div>
                     </div>
+
+                    {provider === 'gemini' && apiKey && !apiKey.startsWith('AIzaSy') && (
+                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2.5 mt-2.5">
+                        <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                        <span>Official Google Gemini keys start with <code className="bg-amber-500/20 px-1 py-0.5 rounded font-mono font-bold text-amber-200">AIzaSy...</code>. If you are using an OpenRouter key, please select <strong>OpenRouter</strong> in the API Provider menu above.</span>
+                      </div>
+                    )}
 
                     {/* Onboarding Help links */}
                     {provider === 'gemini' && (
