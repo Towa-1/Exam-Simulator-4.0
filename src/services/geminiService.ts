@@ -33,10 +33,16 @@ function formatAiError(err: any): string {
   if (!err) return "An unknown error occurred while contacting the AI service.";
   const rawMsg = typeof err === "string" ? err : err.message || String(err);
 
-  if (rawMsg.includes("NOT_FOUND") || rawMsg.includes("is not found for API version")) {
-    return "Invalid Gemini API Key or Model Access Error. Official Google Gemini keys start with 'AIzaSy...'. Please click the Settings gear icon in the top right to verify your key from Google AI Studio (aistudio.google.com), or switch to OpenRouter (Free Models).";
+  if (rawMsg.includes("API_KEY_SERVICE_BLOCKED")) {
+    return "API Key Service Blocked: The Generative Language API is disabled or restricted on this Google Cloud project. Please visit Google AI Studio (aistudio.google.com), create a new unrestricted key, or enable the Generative Language API in Google Cloud Console.";
   }
-  if (rawMsg.includes("API_KEY_INVALID") || rawMsg.includes("API key not valid") || rawMsg.includes("UNAUTHENTICATED")) {
+  if (rawMsg.includes("UNAUTHENTICATED") || rawMsg.includes("ACCESS_TOKEN_TYPE_UNSUPPORTED")) {
+    return "Gemini API Authentication Error: Your API key could not be authenticated by Google. Please open Settings (Gear icon) and verify your key from Google AI Studio (aistudio.google.com).";
+  }
+  if (rawMsg.includes("NOT_FOUND") || rawMsg.includes("is not found for API version")) {
+    return "Gemini API Model Access Error: Please verify that your API Key has access to Gemini models at aistudio.google.com or create a new key.";
+  }
+  if (rawMsg.includes("API_KEY_INVALID") || rawMsg.includes("API key not valid")) {
     return "Invalid API Key. Please click the Settings gear icon in the top right to configure a valid API Key.";
   }
   if (rawMsg.includes("RESOURCE_EXHAUSTED") || rawMsg.includes("429") || rawMsg.includes("quota")) {

@@ -285,12 +285,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </div>
                     </div>
 
-                    {provider === 'gemini' && apiKey && !apiKey.startsWith('AIzaSy') && (
-                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2.5 mt-2.5">
-                        <AlertCircle size={15} className="shrink-0 mt-0.5" />
-                        <span>Official Google Gemini keys start with <code className="bg-amber-500/20 px-1 py-0.5 rounded font-mono font-bold text-amber-200">AIzaSy...</code>. If you are using an OpenRouter key, please select <strong>OpenRouter</strong> in the API Provider menu above.</span>
-                      </div>
-                    )}
+
 
                     {/* Onboarding Help links */}
                     {provider === 'gemini' && (
