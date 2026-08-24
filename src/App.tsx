@@ -481,6 +481,53 @@ export default function App() {
     };
   }, [checkApiKey, loadHistory]);
 
+  // Exam Countdown Timer Effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (state.phase === 'QUIZ' && !state.isPaused && state.timeRemaining > 0) {
+      interval = setInterval(() => {
+        setState(prev => {
+          if (prev.timeRemaining <= 1) {
+            clearInterval(interval!);
+            const timeTaken = prev.duration * 60;
+            const score = Object.entries(prev.userAnswers).filter(([id, ans]) => ans === prev.questions.find(q => q.id === id)?.answer).length;
+            const total = prev.questions.length;
+
+            const newAttempt: ExamAttempt = {
+              id: `attempt-${Date.now()}`,
+              date: Date.now(),
+              score,
+              total,
+              timeTaken,
+              duration: prev.duration
+            };
+
+            const currentHistory = JSON.parse(localStorage.getItem('emagyne_history') || '[]');
+            localStorage.setItem('emagyne_history', JSON.stringify([newAttempt, ...currentHistory]));
+            loadHistory();
+
+            playSound('complete');
+            return {
+              ...prev,
+              timeRemaining: 0,
+              phase: 'RESULTS',
+              endTime: Date.now(),
+            };
+          }
+          return {
+            ...prev,
+            timeRemaining: prev.timeRemaining - 1
+          };
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [state.phase, state.isPaused, state.timeRemaining, state.duration, loadHistory]);
+
   const handleCancelParse = () => {
     if (parseAbortControllerRef.current) {
       parseAbortControllerRef.current.abort();
