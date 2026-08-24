@@ -2,7 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "../types";
 
 const sanitizeModel = (modelName: string | null): string => {
-  if (!modelName || modelName.includes("gemini-2.5-flash")) {
+  if (!modelName || modelName.includes("gemini-2.5-flash") || modelName === "gemini-1.5-pro") {
     return "gemini-2.0-flash";
   }
   return modelName;
@@ -167,14 +167,13 @@ ${rawText}`;
     // Gemini with fallback logic and model resolution
     const ai = new GoogleGenAI({ apiKey: key });
     
-    // Model preference list: custom/selected model, then standard gemini-2.0-flash, gemini-1.5-flash, gemini-1.5-pro
+    // Model preference list: custom/selected model, then standard gemini-2.0-flash, gemini-1.5-flash
     const primaryModel = sanitizeModel(customModel) || "gemini-2.0-flash";
     const candidateModels = Array.from(new Set([
       primaryModel,
       "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-1.5-pro"
-    ])).filter(m => m && !m.includes("gemini-2.5-flash"));
+      "gemini-1.5-flash"
+    ])).filter(m => m && !m.includes("2.5-flash") && m !== "gemini-1.5-pro");
 
     let lastError: any = null;
 
@@ -310,9 +309,8 @@ export async function generateChatResponse(
     const candidateModels = Array.from(new Set([
       primaryModel,
       "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-1.5-pro"
-    ])).filter(m => m && !m.includes("gemini-2.5-flash"));
+      "gemini-1.5-flash"
+    ])).filter(m => m && !m.includes("2.5-flash") && m !== "gemini-1.5-pro");
 
     let lastError: any = null;
 

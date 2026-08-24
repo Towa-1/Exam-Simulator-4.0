@@ -227,10 +227,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         onChange={(e) => setGeminiModel(e.target.value)}
                         className="w-full bg-slate-950/50 border border-primary/20 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-primary/50 text-slate-200 cursor-pointer"
                       >
-                        <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recommended - Fast & Latest)</option>
-                        <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fast & Stable)</option>
-                        <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Reasoning & Complex Math)</option>
-                        <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Lightweight)</option>
+                        <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recommended - Fastest & Latest)</option>
+                        <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fast & High Volume)</option>
                       </select>
                     </div>
                   )}
