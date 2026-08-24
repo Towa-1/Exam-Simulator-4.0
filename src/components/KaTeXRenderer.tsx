@@ -65,11 +65,29 @@ function FormattedSegment({ text }: { text: string }) {
         li: ({ children }) => <li className="text-xs md:text-sm font-semibold leading-relaxed mb-1 last:mb-0">{children}</li>,
         strong: ({ children }) => <strong className="font-extrabold text-primary">{children}</strong>,
         em: ({ children }) => <em className="italic text-slate-200">{children}</em>,
-        code: ({ children }) => (
-          <code className="bg-slate-950/90 px-2 py-0.5 rounded-md text-xs font-mono text-primary-hover border border-primary/20 select-all font-semibold inline-block mx-0.5 shadow-sm">
-            {children}
-          </code>
-        )
+        code: ({ inline, className, children, ...props }: any) => {
+          const match = /language-(\w+)/.exec(className || '');
+          const contentStr = String(children || '');
+          const isBlock = !inline && (match || contentStr.includes('\n') || contentStr.length > 40);
+
+          if (isBlock) {
+            return (
+              <div className="my-3 rounded-2xl bg-slate-950/90 border border-primary/30 overflow-hidden shadow-xl text-left">
+                <div className="flex items-center justify-between px-4 py-2 bg-slate-900/90 border-b border-primary/20 text-[11px] font-mono font-bold text-primary/80">
+                  <span>{match ? match[1].toUpperCase() : 'CODE BLOCK'}</span>
+                </div>
+                <pre className="p-4 overflow-x-auto text-xs md:text-sm font-mono text-slate-200 leading-relaxed custom-scrollbar whitespace-pre">
+                  <code>{children}</code>
+                </pre>
+              </div>
+            );
+          }
+          return (
+            <code className="bg-slate-950/90 px-2 py-0.5 rounded-md text-xs font-mono text-primary-hover border border-primary/20 select-all font-semibold inline-block mx-0.5 shadow-sm">
+              {children}
+            </code>
+          );
+        }
       }}
     >
       {text}

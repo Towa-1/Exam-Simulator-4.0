@@ -61,35 +61,58 @@ function formatAiError(err: any): string {
 
 // Built-in offline client-side parser fallback
 function parseLocally(rawText: string): Question[] {
-  const blocks = rawText.split(/(?=\n(?:Q\d+|\d+[\.\)]|\bQuestion\b))/i).filter(b => b.trim().length > 0);
+  const blocks = rawText.split(/(?=\n(?:Q\d+[\.\:]?|\d+[\.\)]|\bQuestion\b\s*\d*[\.\:]?))/i).filter(b => b.trim().length > 0);
   const questions: Question[] = [];
 
   for (let i = 0; i < blocks.length; i++) {
-    const block = blocks[i].trim();
-    if (!block) continue;
+    const block = blocks[i];
+    if (!block.trim()) continue;
 
-    const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
-    let questionText = lines[0] || `Question ${i + 1}`;
+    const lines = block.split('\n');
+    const questionLines: string[] = [];
     const options: string[] = [];
     let answer = '';
     let explanation = '';
+    let isParsingOptions = false;
+    let isParsingExplanation = false;
 
-    for (let j = 1; j < lines.length; j++) {
+    for (let j = 0; j < lines.length; j++) {
       const line = lines[j];
-      if (/^[A-F][\.\)]/i.test(line)) {
-        options.push(line.replace(/^[A-F][\.\)]\s*/i, ''));
-      } else if (/^Answer:\s*/i.test(line)) {
-        const rawAns = line.replace(/^Answer:\s*/i, '').trim();
+      const trimmed = line.trim();
+      if (!trimmed) {
+        if (!isParsingOptions && questionLines.length > 0) {
+          questionLines.push('');
+        }
+        continue;
+      }
+
+      if (/^[A-F][\.\)]\s*/i.test(trimmed)) {
+        isParsingOptions = true;
+        isParsingExplanation = false;
+        options.push(trimmed.replace(/^[A-F][\.\)]\s*/i, ''));
+      } else if (/^Answer:\s*/i.test(trimmed)) {
+        isParsingOptions = true;
+        isParsingExplanation = false;
+        const rawAns = trimmed.replace(/^Answer:\s*/i, '').trim();
         if (/^[A-F]$/i.test(rawAns) && options.length > 0) {
           const idx = rawAns.toUpperCase().charCodeAt(0) - 65;
           answer = options[idx] || rawAns;
         } else {
           answer = rawAns;
         }
-      } else if (/^Explanation:\s*/i.test(line)) {
-        explanation = line.replace(/^Explanation:\s*/i, '').trim();
+      } else if (/^Explanation:\s*/i.test(trimmed)) {
+        isParsingOptions = true;
+        isParsingExplanation = true;
+        explanation = trimmed.replace(/^Explanation:\s*/i, '').trim();
+      } else if (isParsingExplanation) {
+        explanation += '\n' + line;
+      } else if (!isParsingOptions) {
+        questionLines.push(line);
       }
     }
+
+    let fullQuestionText = questionLines.join('\n').trim();
+    fullQuestionText = fullQuestionText.replace(/^(?:Q\d+[\.\:]?|\d+[\.\)]|\bQuestion\b\s*\d*[\.\:]?)\s*/i, '');
 
     if (!answer && options.length > 0) {
       answer = options[0];
@@ -98,9 +121,9 @@ function parseLocally(rawText: string): Question[] {
     questions.push({
       id: `q-local-${Date.now()}-${i}`,
       type: options.length > 0 ? 'MCQ' : 'NUM',
-      question: questionText.replace(/^(?:Q\d+[\.\:]?|\d+[\.\)]|\bQuestion\b\s*\d*[\.\:]?)\s*/i, ''),
+      question: fullQuestionText || `Question ${i + 1}`,
       options: options.length > 0 ? options : undefined,
-      answer: answer || 'Option A',
+      answer: answer || (options[0] || 'Option A'),
       explanation: explanation || 'Refer to exam materials for detailed breakdown.'
     });
   }
@@ -127,14 +150,16 @@ export async function parseQuestions(rawText: string, signal?: AbortSignal): Pro
 interface Question {
   id: string; // Generate a unique string id (e.g. q-1, q-2, etc.)
   type: 'MCQ' | 'NUM'; // MCQ for Multiple Choice questions, NUM for numerical/open fill-in-the-blank answers
-  question: string; // The text of the question. Style code snippets, variables, numbers, code examples, or syntax keywords with backticks (\`code\`). Keep math equations inside LaTeX delimiters ($...$).
+  question: string; // The text of the question. CRITICAL: You MUST include all code blocks, function definitions, python/java/c++/sql code, and code examples verbatim in the 'question' string using markdown code blocks (e.g. \`\`\`python\ndef flow_rate(v, D=0.1, rho=1000):\n    return rho * v * D\n\`\`\`). Style inline variables/numbers with backticks (\`code\`). Keep math equations inside LaTeX delimiters ($...$).
   options?: string[]; // For MCQ: An array of options. Wrap code snippets/numbers with backticks (\`code\`).
   unit?: string; // For NUM: The unit string if applicable.
   answer: string; // The correct answer text. For MCQ, this must match one of the values in the 'options' array.
   explanation: string; // A detailed explanation of why the answer is correct. Wrap code snippets in backticks (\`code\`).
 }
 
-Respond ONLY with a valid JSON array of Question objects. Do not include markdown code fences or conversational text outside the JSON.
+Instructions:
+1. **Preserve Code Blocks**: If the input contains code blocks, functions, or multiline code snippets, you MUST include the full code block formatted with markdown triple backticks inside the 'question' string. NEVER omit, strip, or summarize code blocks!
+2. **Respond with JSON**: Respond ONLY with a valid JSON array of Question objects. Do not include markdown code fences or conversational text outside the JSON.
 
 Input text to parse:
 ${rawText}`;
