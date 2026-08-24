@@ -89,7 +89,12 @@ function parseLocally(rawText: string): Question[] {
       if (/^[A-F][\.\)]\s*/i.test(trimmed)) {
         isParsingOptions = true;
         isParsingExplanation = false;
-        options.push(trimmed.replace(/^[A-F][\.\)]\s*/i, ''));
+        let optText = trimmed.replace(/^[A-F][\.\)]\s*/i, '').trim();
+        const optLetter = String.fromCharCode(65 + options.length);
+        if (optText.toUpperCase().startsWith(`${optLetter} `)) {
+          optText = optText.substring(2).trim();
+        }
+        options.push(optText);
       } else if (/^Answer:\s*/i.test(trimmed)) {
         isParsingOptions = true;
         isParsingExplanation = false;
