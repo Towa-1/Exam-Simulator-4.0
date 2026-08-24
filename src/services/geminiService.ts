@@ -401,7 +401,7 @@ export async function generateChatResponse(
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(key.trim())}`;
         const contentsPayload = messages.map(msg => ({
-          role: msg.role === "assistant" ? "model" : "user",
+          role: msg.role === "model" ? "model" : "user",
           parts: [{ text: msg.content }]
         }));
 
