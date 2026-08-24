@@ -628,6 +628,7 @@ export default function App() {
     setState(INITIAL_STATE);
     setCurrentQuestionIndex(0);
     setRawInput('');
+    setIsExitModalOpen(false);
     playSound('click');
   };
 

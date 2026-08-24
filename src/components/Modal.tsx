@@ -24,20 +24,25 @@ export function Modal({ isOpen, onClose, onConfirm, title, message }: ModalProps
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="glass-panel relative w-full max-w-md p-8 rounded-2xl"
+            className="glass-panel relative w-full max-w-md p-8 rounded-3xl border border-primary/30 z-10 shadow-2xl"
           >
-            <h2 className="text-2xl font-bold text-yellow-500 mb-4">{title}</h2>
-            <p className="text-slate-300 mb-8">{message}</p>
+            <h2 className="text-2xl font-black text-primary mb-3 uppercase tracking-tight">{title}</h2>
+            <p className="text-slate-300 text-xs md:text-sm leading-relaxed mb-8">{message}</p>
             <div className="flex gap-4">
               <button
+                type="button"
                 onClick={onClose}
-                className="flex-1 py-3 px-6 rounded-xl border border-yellow-500/20 text-yellow-500 font-bold hover:bg-yellow-500/10 transition-colors"
+                className="flex-1 py-3.5 px-6 rounded-2xl border border-primary/20 text-slate-300 font-bold hover:bg-primary/10 transition-colors text-xs md:text-sm cursor-pointer"
               >
                 Cancel
               </button>
               <button
-                onClick={onConfirm}
-                className="flex-1 py-3 px-6 rounded-xl bg-yellow-500 text-slate-950 font-bold hover:bg-yellow-600 transition-colors"
+                type="button"
+                onClick={() => {
+                  onConfirm();
+                  onClose();
+                }}
+                className="flex-1 py-3.5 px-6 rounded-2xl bg-primary text-slate-950 font-black hover:bg-primary-hover transition-colors text-xs md:text-sm cursor-pointer shadow-lg shadow-primary/15"
               >
                 Confirm
               </button>
