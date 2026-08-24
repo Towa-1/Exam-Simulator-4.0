@@ -127,19 +127,73 @@
   }
 }
 
+/* Light Theme High-Contrast Overrides */
 .light-theme {
-  --color-slate-950: var(--color-slate-50);
-  --color-slate-900: var(--color-slate-100);
-  --color-slate-850: var(--color-slate-200);
-  --color-slate-800: var(--color-slate-300);
-  --color-slate-750: var(--color-slate-300);
-  --color-slate-700: var(--color-slate-400);
-  --color-slate-600: var(--color-slate-500);
-  --color-slate-500: var(--color-slate-600);
-  --color-slate-400: var(--color-slate-700);
-  --color-slate-350: var(--color-slate-700);
-  --color-slate-300: var(--color-slate-800);
-  --color-slate-200: var(--color-slate-900);
+  background-color: #f8fafc !important;
+  background-image: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, var(--theme-bg-gradient-color), transparent),
+    radial-gradient(circle at 50% 50%, rgba(241, 245, 249, 0.8) 0%, #f8fafc 100%) !important;
+  color: #0f172a !important;
+
+  --color-slate-950: #f8fafc;
+  --color-slate-900: #ffffff;
+  --color-slate-850: #f1f5f9;
+  --color-slate-800: #e2e8f0;
+  --color-slate-750: #cbd5e1;
+  --color-slate-700: #94a3b8;
+  --color-slate-600: #64748b;
+  --color-slate-500: #475569;
+  --color-slate-400: #334155;
+  --color-slate-350: #1e293b;
+  --color-slate-300: #0f172a;
+  --color-slate-200: #020617;
+}
+
+.light-theme .glass-panel {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(203, 213, 225, 0.9) !important;
+  box-shadow: 0 10px 35px -5px rgba(148, 163, 184, 0.3), 0 0 25px -5px var(--theme-glow) !important;
+}
+
+.light-theme .text-slate-100 {
+  color: #020617 !important;
+}
+
+.light-theme .text-slate-200,
+.light-theme .text-slate-300,
+.light-theme .text-slate-350,
+.light-theme .text-slate-400,
+.light-theme .text-slate-500 {
+  color: #334155 !important;
+}
+
+.light-theme textarea,
+.light-theme input[type="text"] {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light-theme textarea::placeholder,
+.light-theme input::placeholder {
+  color: #64748b !important;
+}
+
+.light-theme .bg-slate-950,
+.light-theme .bg-slate-950\/40,
+.light-theme .bg-slate-950\/50,
+.light-theme .bg-slate-950\/60,
+.light-theme .bg-slate-900\/40,
+.light-theme .bg-slate-900\/60,
+.light-theme .bg-slate-900\/70 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light-theme .bg-slate-800,
+.light-theme .bg-slate-850 {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
 }
 
 html.disable-code-highlight .react-markdown-container code {
