@@ -543,6 +543,16 @@ export default function App() {
     setIsParsing(true);
     setParseError(null);
 
+    // 1. Try local offline parsing first (supports preprocessed flat/inline text and Markdown)
+    const localQuestions = parseLocally(rawInput);
+    if (localQuestions && localQuestions.length > 0) {
+      setState(prev => ({ ...prev, questions: localQuestions, phase: 'SETUP' }));
+      setIsParsing(false);
+      playSound('correct');
+      return;
+    }
+
+    // 2. AI parsing fallback if text is raw unstructured prose
     const controller = new AbortController();
     parseAbortControllerRef.current = controller;
 

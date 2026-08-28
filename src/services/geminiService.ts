@@ -59,9 +59,28 @@ function formatAiError(err: any): string {
   return rawMsg;
 }
 
+// Preprocess text to restore newlines if text was copy-pasted flat (inline without newlines)
+export function preprocessRawText(rawText: string): string {
+  let text = rawText.replace(/\r\n/g, '\n');
+
+  // 1. Insert newline before Q#. / Q#) / Q#: / Question # when inline
+  text = text.replace(/([^\n])\s*(?:#{1,6}\s*)?(Q\d+[\.\:\)]|\bQuestion\b\s*\d+[\.\:\)])/gi, '$1\n$2');
+
+  // 2. Insert newline before option letters A. B. C. D. E. F. when inline
+  text = text.replace(/([^\n])\s+([A-F][\.\)]\s+)/gi, '$1\n$2');
+
+  // 3. Insert newline before Answer: or **Answer:** when inline
+  text = text.replace(/([^\n])\s+(\*{0,2}Answer:\s*)/gi, '$1\n$2');
+
+  // 4. Insert newline before Explanation: or **Explanation:** when inline
+  text = text.replace(/([^\n])\s+(\*{0,2}Explanation:\s*)/gi, '$1\n$2');
+
+  return text;
+}
+
 // Built-in offline client-side parser fallback (Supports Markdown .md files and raw text)
 export function parseLocally(rawText: string): Question[] {
-  const text = rawText.replace(/\r\n/g, '\n');
+  const text = preprocessRawText(rawText);
   const blocks = text
     .split(/(?=\n(?:#{1,6}\s*)?(?:Q\d+[\.\:\)]|\d+[\.\)]|\bQuestion\b\s*\d*[\.\:]?))/i)
     .filter(b => b.trim().length > 0);
