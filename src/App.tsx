@@ -7,7 +7,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { KaTeXRenderer } from './components/KaTeXRenderer';
-import { parseQuestions } from './services/geminiService';
+import { parseQuestions, parseLocally } from './services/geminiService';
 import { Question, ExamState } from './types';
 import { Modal } from './components/Modal';
 import { SettingsModal } from './components/SettingsModal';
@@ -587,6 +587,7 @@ export default function App() {
   };
 
   // Export parsed questions as JSON
+  // Export parsed questions as JSON
   const handleExportExam = () => {
     if (state.questions.length === 0) return;
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.questions, null, 2));
@@ -599,33 +600,113 @@ export default function App() {
     playSound('click');
   };
 
-  // Import questions from JSON
+  // Export parsed questions as Markdown (.md)
+  const handleExportMarkdown = () => {
+    if (state.questions.length === 0) return;
+    let mdContent = `# Emagyne Exam Questions\n\n`;
+    state.questions.forEach((q, idx) => {
+      mdContent += `### Q${idx + 1}. ${q.question}\n`;
+      if (q.options && q.options.length > 0) {
+        q.options.forEach((opt, optIdx) => {
+          const letter = String.fromCharCode(65 + optIdx);
+          mdContent += `${letter}. ${opt}\n`;
+        });
+        const ansIndex = q.options.indexOf(q.answer);
+        const ansLetter = ansIndex >= 0 ? String.fromCharCode(65 + ansIndex) : q.answer;
+        mdContent += `**Answer:** ${ansLetter}\n`;
+      } else {
+        mdContent += `**Answer:** ${q.answer}\n`;
+      }
+      if (q.explanation) {
+        mdContent += `**Explanation:**  \n${q.explanation}\n`;
+      }
+      mdContent += `\n---\n\n`;
+    });
+
+    const dataStr = "data:text/markdown;charset=utf-8," + encodeURIComponent(mdContent);
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `emagyne_exam_${Date.now()}.md`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    playSound('click');
+  };
+
+  // Import questions from JSON, Markdown (.md), or raw text file
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
-        const parsed = JSON.parse(event.target?.result as string);
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].question && parsed[0].answer) {
+        const rawContent = event.target?.result as string;
+        if (!rawContent || !rawContent.trim()) {
+          setParseError("The selected file is empty.");
+          playSound('incorrect');
+          return;
+        }
+
+        // 1. Try JSON parse if file is .json or content starts with JSON structure
+        if (file.name.endsWith('.json') || rawContent.trim().startsWith('[') || rawContent.trim().startsWith('{')) {
+          try {
+            const parsed = JSON.parse(rawContent);
+            const questionsList = Array.isArray(parsed) ? parsed : parsed.questions;
+            if (Array.isArray(questionsList) && questionsList.length > 0 && questionsList[0].question && questionsList[0].answer) {
+              setState(prev => ({
+                ...prev,
+                questions: questionsList,
+                phase: 'SETUP'
+              }));
+              setParseError(null);
+              playSound('correct');
+              return;
+            }
+          } catch (jsonErr) {
+            // Not valid JSON, fall through to Markdown/text parser
+          }
+        }
+
+        // 2. Parse as Markdown (.md) or raw text using offline parser
+        const localQuestions = parseLocally(rawContent);
+        if (localQuestions.length > 0) {
           setState(prev => ({
             ...prev,
-            questions: parsed,
+            questions: localQuestions,
             phase: 'SETUP'
           }));
           setParseError(null);
           playSound('correct');
-        } else {
-          setParseError("Invalid exam file format. It must be a JSON array of questions.");
-          playSound('incorrect');
+          return;
         }
+
+        // 3. Fallback: try AI parsing if API key is configured
+        try {
+          const aiQuestions = await parseQuestions(rawContent);
+          if (aiQuestions && aiQuestions.length > 0) {
+            setState(prev => ({
+              ...prev,
+              questions: aiQuestions,
+              phase: 'SETUP'
+            }));
+            setParseError(null);
+            playSound('correct');
+            return;
+          }
+        } catch (aiErr) {
+          console.warn("AI parsing fallback failed:", aiErr);
+        }
+
+        setParseError("Could not extract any valid questions from the selected file. Please ensure it follows Markdown or standard question format.");
+        playSound('incorrect');
       } catch (err) {
-        setParseError("Failed to read file. Please ensure it is a valid JSON file.");
+        setParseError("Failed to read file.");
         playSound('incorrect');
       }
     };
     reader.readAsText(file);
+    e.target.value = '';
   };
 
   const startExam = () => {
@@ -899,16 +980,16 @@ Explanation: 5 + 3 is equal to 8."
                         fileInputRef.current?.click();
                       }}
                       className="py-3.5 px-6 border border-slate-800 text-slate-400 font-bold rounded-2xl hover:text-slate-200 hover:border-slate-600 transition-all text-sm md:text-base cursor-pointer flex items-center justify-center gap-2"
-                      title="Load a previously exported .json exam"
+                      title="Load a Markdown (.md), JSON, or text file with questions"
                     >
                       <Upload size={16} />
-                      IMPORT JSON
+                      IMPORT FILE (.MD / .JSON)
                     </button>
                     <input 
                       type="file"
                       ref={fileInputRef}
                       onChange={handleImportFile}
-                      accept=".json"
+                      accept=".md,.json,.txt,.markdown"
                       className="hidden"
                     />
                   </div>
@@ -1057,11 +1138,20 @@ Explanation: 5 + 3 is equal to 8."
 
                   <button
                     onClick={handleExportExam}
-                    className="py-4 px-5 border border-primary/20 text-primary font-bold rounded-2xl hover:bg-primary/5 transition-all text-sm cursor-pointer flex items-center justify-center gap-2"
-                    title="Save this exam layout to a file so you can import it later without AI parsing"
+                    className="py-4 px-4 border border-primary/20 text-primary font-bold rounded-2xl hover:bg-primary/5 transition-all text-sm cursor-pointer flex items-center justify-center gap-2"
+                    title="Export dataset as JSON file"
                   >
                     <Download size={16} />
-                    EXPORT DATASET
+                    EXPORT JSON
+                  </button>
+
+                  <button
+                    onClick={handleExportMarkdown}
+                    className="py-4 px-4 border border-slate-800 text-slate-300 font-bold rounded-2xl hover:bg-slate-800 transition-all text-sm cursor-pointer flex items-center justify-center gap-2"
+                    title="Export dataset as Markdown (.md) file"
+                  >
+                    <FileText size={16} />
+                    EXPORT MD
                   </button>
                 </div>
 

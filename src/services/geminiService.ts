@@ -59,14 +59,18 @@ function formatAiError(err: any): string {
   return rawMsg;
 }
 
-// Built-in offline client-side parser fallback
-function parseLocally(rawText: string): Question[] {
-  const blocks = rawText.split(/(?=\n(?:Q\d+[\.\:]?|\d+[\.\)]|\bQuestion\b\s*\d*[\.\:]?))/i).filter(b => b.trim().length > 0);
+// Built-in offline client-side parser fallback (Supports Markdown .md files and raw text)
+export function parseLocally(rawText: string): Question[] {
+  const text = rawText.replace(/\r\n/g, '\n');
+  const blocks = text
+    .split(/(?=\n(?:#{1,6}\s*)?(?:Q\d+[\.\:\)]|\d+[\.\)]|\bQuestion\b\s*\d*[\.\:]?))/i)
+    .filter(b => b.trim().length > 0);
+
   const questions: Question[] = [];
 
   for (let i = 0; i < blocks.length; i++) {
-    const block = blocks[i];
-    if (!block.trim()) continue;
+    const block = blocks[i].trim();
+    if (!block) continue;
 
     const lines = block.split('\n');
     const questionLines: string[] = [];
@@ -79,6 +83,7 @@ function parseLocally(rawText: string): Question[] {
     for (let j = 0; j < lines.length; j++) {
       const line = lines[j];
       const trimmed = line.trim();
+
       if (!trimmed) {
         if (!isParsingOptions && questionLines.length > 0) {
           questionLines.push('');
@@ -86,38 +91,63 @@ function parseLocally(rawText: string): Question[] {
         continue;
       }
 
-      if (/^[A-F][\.\)]\s*/i.test(trimmed)) {
+      // Match option line: A. ... or **A.** ... or A) ...
+      const optionMatch = trimmed.match(/^(?:\*{1,2})?([A-F])[\.\)]\s*(?:\*{1,2})?\s*(.*)$/i);
+      if (optionMatch) {
         isParsingOptions = true;
         isParsingExplanation = false;
-        let optText = trimmed.replace(/^[A-F][\.\)]\s*/i, '').trim();
-        const optLetter = String.fromCharCode(65 + options.length);
-        if (optText.toUpperCase().startsWith(`${optLetter} `)) {
-          optText = optText.substring(2).trim();
-        }
+        let optText = optionMatch[2].trim();
+        optText = optText.replace(/^[\*\_]+|[\*\_]+$/g, '').trim();
         options.push(optText);
-      } else if (/^Answer:\s*/i.test(trimmed)) {
+        continue;
+      }
+
+      // Match answer line: **Answer:** A or Answer: A or Answer: [Letter]
+      const answerMatch = trimmed.match(/^(?:\*{1,2})?Answer:\s*(?:\*{1,2})?\s*(.*)$/i);
+      if (answerMatch) {
         isParsingOptions = true;
         isParsingExplanation = false;
-        const rawAns = trimmed.replace(/^Answer:\s*/i, '').trim();
-        if (/^[A-F]$/i.test(rawAns) && options.length > 0) {
-          const idx = rawAns.toUpperCase().charCodeAt(0) - 65;
-          answer = options[idx] || rawAns;
+        let rawAns = answerMatch[1].trim();
+        rawAns = rawAns.replace(/^[\*\_]+|[\*\_]+$/g, '').trim();
+
+        const letterMatch = rawAns.match(/^([A-F])$/i);
+        if (letterMatch && options.length > 0) {
+          const idx = letterMatch[1].toUpperCase().charCodeAt(0) - 65;
+          answer = options[idx] !== undefined ? options[idx] : rawAns;
         } else {
-          answer = rawAns;
+          const optLetterMatch = rawAns.match(/^(?:Option\s*)?([A-F])[\.\:\)]?\s*(.*)/i);
+          if (optLetterMatch && options.length > 0) {
+            const idx = optLetterMatch[1].toUpperCase().charCodeAt(0) - 65;
+            answer = options[idx] !== undefined ? options[idx] : rawAns;
+          } else {
+            answer = rawAns;
+          }
         }
-      } else if (/^Explanation:\s*/i.test(trimmed)) {
+        continue;
+      }
+
+      // Match explanation header line: **Explanation:** or Explanation: ...
+      const explanationMatch = trimmed.match(/^(?:\*{1,2})?Explanation:\s*(?:\*{1,2})?\s*(.*)$/i);
+      if (explanationMatch) {
         isParsingOptions = true;
         isParsingExplanation = true;
-        explanation = trimmed.replace(/^Explanation:\s*/i, '').trim();
-      } else if (isParsingExplanation) {
-        explanation += '\n' + line;
+        const initialExpl = explanationMatch[1].trim();
+        explanation = initialExpl;
+        continue;
+      }
+
+      if (isParsingExplanation) {
+        explanation += (explanation ? '\n' : '') + line;
       } else if (!isParsingOptions) {
         questionLines.push(line);
       }
     }
 
     let fullQuestionText = questionLines.join('\n').trim();
-    fullQuestionText = fullQuestionText.replace(/^(?:Q\d+[\.\:]?|\d+[\.\)]|\bQuestion\b\s*\d*[\.\:]?)\s*/i, '');
+    fullQuestionText = fullQuestionText.replace(/^(?:#{1,6}\s*)?(?:Q\d+[\.\:\)]|\d+[\.\)]|\bQuestion\b\s*\d*[\.\:]?)\s*/i, '');
+
+    // Skip blocks that don't contain a question
+    if (!fullQuestionText && options.length === 0) continue;
 
     if (!answer && options.length > 0) {
       answer = options[0];
@@ -129,7 +159,7 @@ function parseLocally(rawText: string): Question[] {
       question: fullQuestionText || `Question ${i + 1}`,
       options: options.length > 0 ? options : undefined,
       answer: answer || (options[0] || 'Option A'),
-      explanation: explanation || 'Refer to exam materials for detailed breakdown.'
+      explanation: explanation.trim() || 'Refer to exam materials for detailed breakdown.'
     });
   }
 
