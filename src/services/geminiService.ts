@@ -59,21 +59,25 @@ function formatAiError(err: any): string {
   return rawMsg;
 }
 
-// Preprocess text to restore newlines if text was copy-pasted flat (inline without newlines)
+// Preprocess text to restore newlines if text was copy-pasted flat or tightly glued without spaces
 export function preprocessRawText(rawText: string): string {
   let text = rawText.replace(/\r\n/g, '\n');
 
-  // 1. Insert newline before Q#. / Q#) / Q#: / Question # when inline
-  text = text.replace(/([^\n])\s*(?:#{1,6}\s*)?(Q\d+[\.\:\)]|\bQuestion\b\s*\d+[\.\:\)])/gi, '$1\n$2');
+  // 1. Separate glued Question numbers: "Kumasi.Q32." or "text  Q32." or "text\nQ32."
+  text = text.replace(/([^\n])\s*(?:#{1,6}\s*)?(Q\d+[\.\:\)]|\bQuestion\b\s*\d+[\.\:\)])/gi, '$1\n\n$2');
 
-  // 2. Insert newline before option letters A. B. C. D. E. F. when inline
-  text = text.replace(/([^\n])\s+([A-F][\.\)]\s+)/gi, '$1\n$2');
+  // 2. Separate Answer and Explanation if glued together: "Answer: BExplanation:" or "Answer: B  Explanation:"
+  text = text.replace(/(\*{0,2}Answer:\s*[^\n]+?)\s*(\*{0,2}Explanation:\s*)/gi, '$1\n$2');
 
-  // 3. Insert newline before Answer: or **Answer:** when inline
-  text = text.replace(/([^\n])\s+(\*{0,2}Answer:\s*)/gi, '$1\n$2');
+  // 3. Separate glued "Answer:" from previous option text: "SpillwayAnswer: B" or "text Answer: B"
+  text = text.replace(/([^\n])\s*(\*{0,2}Answer:\s*)/gi, '$1\n$2');
 
-  // 4. Insert newline before Explanation: or **Explanation:** when inline
-  text = text.replace(/([^\n])\s+(\*{0,2}Explanation:\s*)/gi, '$1\n$2');
+  // 4. Separate glued "Explanation:" if still attached: "textExplanation:"
+  text = text.replace(/([^\n])\s*(\*{0,2}Explanation:\s*)/gi, '$1\n$2');
+
+  // 5. Separate Option letters A., B., C., D., E., F. even when glued directly to previous text or punctuation
+  // E.g. "Unit?A. Kpong", "ProjectB. Akosombo", "ERC. Bui", "GorgeD. Barekese"
+  text = text.replace(/([^\n])\s*([A-F][\.\)])\s*(?=[A-Z0-9"'\`\(\[])/g, '$1\n$2 ');
 
   return text;
 }
